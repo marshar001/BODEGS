@@ -75,8 +75,10 @@ async function loadCart() {
 }
 
 // ---------- auth ----------
-async function signUp(email, password, fullName) {
-  return sb.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
+async function signUp(email, password, fullName, age) {
+  const data = { full_name: fullName };
+  if (age) { data.age = age; }
+  return sb.auth.signUp({ email, password, options: { data } });
 }
 async function signIn(email, password) {
   return sb.auth.signInWithPassword({ email, password });
