@@ -23,7 +23,7 @@
   >
   <link rel="stylesheet" href="theme.css?v=20261031">
   <script src="theme.js?v=20261031" defer></script>
-  <script src="card-cart.js?v=1" defer></script>
+  <script src="card-cart.js?v=2"></script>
 
   <style>
 
@@ -1096,46 +1096,7 @@ function bodegsShowPrice(el, amount, cur) {
       render();
     }
 
-    function card(product) {
-      var article = document.createElement("article");
-      article.className = "explore-product";
-
-      var link = document.createElement("a");
-      link.href = "product.html?id=" + encodeURIComponent(product.id);
-
-      var imgWrap = document.createElement("div");
-      imgWrap.className = "explore-product-image";
-      if (product.images && product.images.length) {
-        var img = document.createElement("img");
-        img.src = product.images[0];
-        img.alt = product.name;
-        img.loading = "lazy";
-        imgWrap.appendChild(img);
-      }
-
-      var info = document.createElement("div");
-      info.className = "explore-product-info";
-
-      var name = document.createElement("h3");
-      name.className = "explore-product-name";
-      name.textContent = product.name;
-
-      var price = document.createElement("p");
-      price.className = "explore-product-price";
-      bodegsShowPrice(price, product.price, product.currency);
-
-      var seller = document.createElement("p");
-      seller.className = "explore-product-description";
-      seller.textContent = (product.sellerVerified ? "\u2713 " : "") + (product.sellerName || "");
-
-      info.appendChild(name);
-      info.appendChild(price);
-      info.appendChild(seller);
-      link.appendChild(imgWrap);
-      link.appendChild(info);
-      article.appendChild(link);
-      return article;
-    }
+    function card(product) { return window.BODEGSCard.build(product); }
 
     function render() {
       grid.textContent = "";

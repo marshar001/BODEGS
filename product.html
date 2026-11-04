@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.css?v=20261031">
   <script src="theme.js?v=20261031" defer></script>
-  <script src="card-cart.js?v=1" defer></script>
+  <script src="card-cart.js?v=2"></script>
   <style>
     [hidden] { display: none !important; }
     body { padding-bottom: 96px; }
@@ -688,36 +688,7 @@ function bodegsShowPrice(el, amount, cur) {
         var grid = $("recommendedGrid");
         grid.textContent = "";
         picks.forEach(function (item) {
-          var card = document.createElement("a");
-          card.className = "product-card";
-          card.href = "product.html?id=" + encodeURIComponent(item.id);
-          var wrap = document.createElement("div");
-          wrap.className = "product-image";
-          if (item.images && item.images.length) {
-            var img = document.createElement("img");
-            img.src = item.images[0];
-            img.alt = item.name;
-            img.loading = "lazy";
-            wrap.appendChild(img);
-          }
-          var name = document.createElement("h3");
-          name.textContent = item.name;
-          var price = document.createElement("p");
-          bodegsShowPrice(price, item.price, item.currency || "NGN");
-          card.appendChild(wrap);
-          card.appendChild(name);
-          card.appendChild(price);
-          // same card as the home page: description and verified line too
-          if (item.description) {
-            var desc = document.createElement("small");
-            desc.textContent = item.description;
-            card.appendChild(desc);
-          }
-          if (item.productVerified) {
-            var ver = document.createElement("small");
-            ver.textContent = "\u2713 BODEGS verified";
-            card.appendChild(ver);
-          }
+          var card = window.BODEGSCard.build(item);
           grid.appendChild(card);
         });
         $("recommendedBox").hidden = !picks.length;

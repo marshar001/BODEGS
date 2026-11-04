@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.css?v=20261031">
   <script src="theme.js?v=20261031" defer></script>
+  <script src="card-cart.js?v=2"></script>
   <style>.cart-header { margin-top: 36px; }</style>
 </head>
 
@@ -43,7 +44,7 @@
     <a href="explore.html">View all</a>
   </div>
 
-  <div class="recently-viewed-grid" id="recentlyViewedGrid"></div>
+  <div class="products" id="recentlyViewedGrid"></div>
 </section>
   </main>
 
@@ -94,6 +95,9 @@
 
     </nav>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="products.js?v=20261031"></script>
   <script>
 // Product names, images and links come from sellers, so they are always
 // escaped before being placed into the page.
@@ -125,22 +129,29 @@ if (lastProductPage) {
       localStorage.getItem("weraeRecentlyViewed") || "[]"
     );
 
-    recentlyViewedProducts.forEach(product => {
-      const card = document.createElement("a");
-
-      card.href = safeProductUrl(product.url);
-      card.className = "recently-viewed-card";
-
-      card.innerHTML = `
-        <div class="recently-viewed-image">
-          <img src="${escapeHTML(product.image)}" alt="${escapeHTML(product.name)}">
-        </div>
-        <h3>${escapeHTML(product.name)}</h3>
-        <p>${escapeHTML(product.price)}</p>
-      `;
-
-      recentlyViewedGrid.appendChild(card);
-    });
+    // Same card as the rest of the app. Full details come from the database;
+    // if a product can no longer be found, the saved name, photo and price are used.
+    function showRecentlyViewed() {
+      recentlyViewedGrid.textContent = "";
+      recentlyViewedProducts.forEach(saved => {
+        const id = (String(saved.url || "").match(/id=([^&]+)/) || [])[1];
+        let full = null;
+        try {
+          const all = (window.BODEGS && window.BODEGS.getAllProducts && window.BODEGS.getAllProducts()) || [];
+          const key = id ? decodeURIComponent(id) : String(saved.productId || "");
+          full = all.filter(p => String(p.id) === key)[0] || null;
+        } catch (e) {}
+        const product = full || {
+          id: saved.productId, name: saved.name, priceText: saved.price,
+          images: saved.image ? [saved.image] : []
+        };
+        const card = window.BODEGSCard.build(product);
+        card.href = safeProductUrl(saved.url);
+        recentlyViewedGrid.appendChild(card);
+      });
+    }
+    if (window.BODEGS && window.BODEGS.ready) { window.BODEGS.ready.then(showRecentlyViewed); }
+    else { showRecentlyViewed(); }
         const cartItems = document.getElementById("cartItems");
 
     const cartProducts = JSON.parse(

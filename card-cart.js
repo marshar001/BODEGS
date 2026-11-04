@@ -7,6 +7,13 @@
   window.__bodegsCardCart = true;
 
   var css = [
+    ".cur{font-size:.62em;font-weight:700;margin-right:1px;vertical-align:.12em}",
+    ".product-card{border-radius:17px;corner-shape:squircle;color:#111;font-family:Roboto,'Segoe UI',Arial,sans-serif}",
+    ".product-image{overflow:hidden;border-radius:14px 14px 0 0;corner-shape:squircle}",
+    ".product-image img{display:block;width:100%;height:auto;border-radius:0}",
+    ".product-card h3{margin:5px 3px 2px;font-family:Roboto,'Segoe UI',Arial,sans-serif;font-size:12.5px;font-weight:500;line-height:1.25;color:#111}",
+    ".product-card p{margin:0 3px 3px;font-family:Roboto,'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:700;line-height:1.2;color:#111}",
+    ".product-card small,.product-card small:first-of-type{margin:0 3px 2px;font-family:Roboto,'Segoe UI',Arial,sans-serif;color:#6b6b6b}",
     ".product-card > small:first-of-type{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}",
     ".cc-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:2px 3px 3px;min-height:34px}",
     ".cc-foot small{margin:0 !important;min-width:0}",
@@ -103,6 +110,35 @@
     row.appendChild(btn);
     parent.appendChild(row);
   }
+
+  /* One card for the whole app: exactly the home page card. */
+  function showPrice(el, p) {
+    var B = window.BODEGS;
+    if (p.priceText) { el.textContent = p.priceText; return; }
+    if (B && typeof B.setPrice === "function") { B.setPrice(el, p.price, p.currency || "NGN"); }
+    else if (B && B.formatCurrency) { el.textContent = B.formatCurrency(p.price, p.currency || "NGN"); }
+    else { el.textContent = "\u20A6" + Number(p.price || 0).toLocaleString("en-NG"); }
+  }
+  window.BODEGSCard = {
+    build: function (p) {
+      var a = document.createElement("a");
+      a.className = "product-card";
+      a.href = p.url || ("product.html?id=" + encodeURIComponent(p.id));
+      var wrap = document.createElement("div");
+      wrap.className = "product-image";
+      if (p.images && p.images.length) {
+        var im = document.createElement("img");
+        im.src = p.images[0]; im.alt = p.name || ""; im.loading = "lazy";
+        wrap.appendChild(im);
+      }
+      a.appendChild(wrap);
+      var h = document.createElement("h3"); h.textContent = p.name || ""; a.appendChild(h);
+      var pr = document.createElement("p"); showPrice(pr, p); a.appendChild(pr);
+      if (p.description) { var d = document.createElement("small"); d.textContent = p.description; a.appendChild(d); }
+      if (p.productVerified) { var v = document.createElement("small"); v.textContent = "\u2713 BODEGS verified"; a.appendChild(v); }
+      return a;
+    }
+  };
 
   function scan() {
     var cards = document.querySelectorAll("a.product-card, .explore-product > a");

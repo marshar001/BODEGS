@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.css?v=20261031">
   <script src="theme.js?v=20261031" defer></script>
-  <script src="card-cart.js?v=1" defer></script>
+  <script src="card-cart.js?v=2"></script>
   <style>
     [hidden] { display: none !important; }
     body { padding-bottom: 24px; }
@@ -183,38 +183,8 @@ function bodegsShowPrice(el, amount, cur) {
         show();
       }
 
-      // Same card markup and classes as the home page product cards.
-      function card(product) {
-        var link = document.createElement("a");
-        link.className = "product-card";
-        link.href = "product.html?id=" + encodeURIComponent(product.id);
-
-        var imageWrap = document.createElement("div");
-        imageWrap.className = "product-image";
-        if (product.images && product.images.length) {
-          var img = document.createElement("img");
-          img.src = product.images[0];
-          img.alt = product.name;
-          img.loading = "lazy";
-          imageWrap.appendChild(img);
-        }
-        link.appendChild(imageWrap);
-
-        var name = document.createElement("h3");
-        name.textContent = product.name;
-        link.appendChild(name);
-
-        var price = document.createElement("p");
-        bodegsShowPrice(price, product.price, product.currency || "NGN");
-        link.appendChild(price);
-
-        // Seller name is only a label; the card opens the product, not the seller.
-        var seller = document.createElement("small");
-        seller.textContent = (product.sellerVerified ? "\u2713 " : "") + (product.sellerName || "");
-        link.appendChild(seller);
-
-        return link;
-      }
+      // One shared card for the whole app (card-cart.js): same as the home page.
+      function card(product) { return window.BODEGSCard.build(product); }
 
       function renderList() {
         var grid = $("cpGrid");

@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.css?v=20261031">
   <script src="theme.js?v=20261031" defer></script>
-  <script src="card-cart.js?v=1" defer></script>
+  <script src="card-cart.js?v=2"></script>
   <style>
     [hidden] { display: none !important; }
     body { padding-bottom: 24px; }
@@ -177,38 +177,8 @@ function bodegsShowPrice(el, amount, cur) {
         showNote(wrap);
       }
 
-      // Same card markup and classes as the home page product cards.
-      function card(product) {
-        const link = document.createElement("a");
-        link.className = "product-card";
-        link.href = "product.html?id=" + encodeURIComponent(product.id);
-
-        const imageWrap = document.createElement("div");
-        imageWrap.className = "product-image";
-        if (product.images && product.images.length) {
-          const image = document.createElement("img");
-          image.src = product.images[0];
-          image.alt = product.name;
-          image.loading = "lazy";
-          imageWrap.appendChild(image);
-        }
-        link.appendChild(imageWrap);
-
-        const name = document.createElement("h3");
-        name.textContent = product.name;
-        link.appendChild(name);
-
-        const price = document.createElement("p");
-        bodegsShowPrice(price, product.price, product.currency || "NGN");
-        link.appendChild(price);
-
-        if (product.description) {
-          const description = document.createElement("small");
-          description.textContent = product.description;
-          link.appendChild(description);
-        }
-        return link;
-      }
+      // One shared card for the whole app (card-cart.js): same as the home page.
+      function card(product) { return window.BODEGSCard.build(product); }
 
       function buildChips() {
         const box = $("sfChips");
