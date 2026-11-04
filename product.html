@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.css?v=20261031">
   <script src="theme.js?v=20261031" defer></script>
+  <script src="card-cart.js?v=1" defer></script>
   <style>
     [hidden] { display: none !important; }
     body { padding-bottom: 96px; }
@@ -61,6 +62,28 @@
     .pp-thumbs button { flex: none; width: 54px; height: 54px; padding: 0; border: 2px solid transparent; border-radius: 12px; overflow: hidden; background: #e6dfd0; cursor: pointer; }
     .pp-thumbs button.active { border-color: var(--deep-green); }
     .pp-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+
+    /* ---------- photo pop-up (tap the big photo) ---------- */
+    .main-product-image img { cursor: zoom-in; }
+    .pv { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 14px; background: rgba(4,24,19,.94); opacity: 0; transition: opacity .18s ease; font-family: Roboto, "Segoe UI", Arial, sans-serif; }
+    .pv.on { opacity: 1; }
+    .pv-card { position: relative; width: 100%; max-width: 480px; max-height: 100%; overflow-y: auto; border-radius: 28px; corner-shape: squircle; background: #faf5ee; transform: translateY(18px) scale(.98); transition: transform .22s ease; scrollbar-width: none; }
+    .pv-card::-webkit-scrollbar { display: none; }
+    .pv.on .pv-card { transform: none; }
+    .pv-photo { position: relative; }
+    .pv-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; background: #d9d9dc; }
+    .pv-track::-webkit-scrollbar { display: none; }
+    .pv-slide { flex: none; width: 100%; scroll-snap-align: center; scroll-snap-stop: always; aspect-ratio: 4 / 4.6; max-height: 58vh; }
+    .pv-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pv-close { position: absolute; top: 14px; right: 14px; z-index: 2; width: 46px; height: 46px; border: 0; border-radius: 50%; background: #fff; color: #111; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+    .pv-close svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .pv-count { position: absolute; right: 14px; bottom: 14px; padding: 7px 13px; border-radius: 999px; background: #173b32; color: #fff; font: 700 14px Roboto, "Segoe UI", Arial, sans-serif; }
+    .pv-info { padding: 20px 22px calc(20px + env(safe-area-inset-bottom)); }
+    .pv-info h2 { margin: 0 0 6px; font: 700 24px/1.15 Roboto, "Segoe UI", Arial, sans-serif; color: #111; overflow-wrap: anywhere; }
+    .pv-info .pv-price { margin: 0 0 16px; font: 700 22px Roboto, "Segoe UI", Arial, sans-serif; color: #111; }
+    .pv-info button.pv-add { width: 100%; height: 52px; border: 0; border-radius: 18px; corner-shape: squircle; background: #173b32; color: #fff; font: 700 16px Roboto, "Segoe UI", Arial, sans-serif; cursor: pointer; }
+    .pv-info button.pv-add:disabled { opacity: .5; }
 
     /* ---------- sticky action bar ---------- */
     .pp-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display: flex; gap: 10px; padding: 10px max(14px, calc(50% - 306px)) calc(10px + env(safe-area-inset-bottom)); background: rgba(245,240,231,.96); border-top: 1px solid rgba(23,59,50,.1); backdrop-filter: blur(6px); }
@@ -556,6 +579,73 @@ function bodegsShowPrice(el, amount, cur) {
           cartButton.classList.add("cart-bounce");
           setTimeout(function () { cartButton.classList.remove("cart-bounce"); }, 500);
         }
+
+
+        /* ----- full-screen photo viewer (tap the big photo) ----- */
+        var viewer = null;
+        function openViewer() {
+          if (!images.length || viewer) { return; }
+          viewer = document.createElement("div");
+          viewer.className = "pv";
+          viewer.setAttribute("role", "dialog");
+          viewer.setAttribute("aria-label", "Product photos");
+          viewer.innerHTML = '<div class="pv-card"><div class="pv-photo"><div class="pv-track"></div><button type="button" class="pv-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><span class="pv-count"></span></div><div class="pv-info"><h2></h2><p class="pv-price"></p><button type="button" class="pv-add"></button></div></div>';
+          var track = viewer.querySelector(".pv-track");
+          var label = viewer.querySelector(".pv-count");
+          viewer.querySelector("h2").textContent = product.name;
+          bodegsShowPrice(viewer.querySelector(".pv-price"), product.price, product.currency || "NGN");
+          images.forEach(function (src) {
+            var sl = document.createElement("div");
+            sl.className = "pv-slide";
+            var im = document.createElement("img");
+            im.src = src;
+            im.alt = product.name;
+            sl.appendChild(im);
+            track.appendChild(sl);
+          });
+          function setLabel(i) { label.textContent = (i + 1) + " / " + images.length; }
+          setLabel(current);
+          var vbtn = viewer.querySelector(".pv-add");
+          vbtn.textContent = soldOut ? "Sold out" : "Add to Cart";
+          vbtn.disabled = soldOut;
+          document.body.appendChild(viewer);
+          document.documentElement.style.overflow = "hidden";
+          track.scrollLeft = current * track.clientWidth;
+          requestAnimationFrame(function () { viewer.classList.add("on"); track.scrollLeft = current * track.clientWidth; });
+          var tick;
+          track.addEventListener("scroll", function () {
+            clearTimeout(tick);
+            tick = setTimeout(function () {
+              var i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+              i = Math.max(0, Math.min(images.length - 1, i));
+              setLabel(i);
+              showImage(i);
+            }, 60);
+          });
+          function closeViewer() {
+            document.removeEventListener("keydown", onKey);
+            document.documentElement.style.overflow = "";
+            viewer.classList.remove("on");
+            var v = viewer; viewer = null;
+            setTimeout(function () { v.remove(); }, 180);
+          }
+          function onKey(e) { if (e.key === "Escape") { closeViewer(); } }
+          document.addEventListener("keydown", onKey);
+          viewer.querySelector(".pv-close").addEventListener("click", closeViewer);
+          viewer.addEventListener("click", function (e) { if (e.target === viewer) { closeViewer(); } });
+          vbtn.addEventListener("click", function () {
+            if (sizes.length && !chosenSize) {
+              closeViewer();
+              addProductToCart();      // shows "Please choose a size" and scrolls to the sizes
+              return;
+            }
+            if (addProductToCart()) {
+              vbtn.textContent = "Added \u2713";
+              setTimeout(function () { if (vbtn.isConnected) { vbtn.textContent = "Add to Cart"; } }, 1200);
+            }
+          });
+        }
+        mainImage.addEventListener("click", openViewer);
 
         addButton.addEventListener("click", addProductToCart);
         cartButton.addEventListener("click", function () {
