@@ -7,9 +7,10 @@
   window.__bodegsCardCart = true;
 
   var css = [
-    ".cc-row{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 3px 3px}",
-    ".cc-row p{margin:0 !important;min-width:0}",
-    ".cc-btn{flex:none;width:34px;height:34px;margin:0;padding:0;border:0;border-radius:11px;corner-shape:squircle;background:#f1efe9;color:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}",
+    ".product-card > small:first-of-type{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}",
+    ".cc-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:2px 3px 3px;min-height:34px}",
+    ".cc-foot small{margin:0 !important;min-width:0}",
+    ".cc-btn{flex:none;margin-left:auto;width:32px;height:32px;margin:0;padding:0;border:0;border-radius:11px;corner-shape:squircle;background:#f1efe9;color:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}",
     ".cc-btn svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}",
     ".cc-btn:active{transform:scale(.92)}",
     ".cc-btn.cc-ok{background:#173b32;color:#fff}",
@@ -86,10 +87,13 @@
     card.__cc = true;
     var p = findProduct(idOf(card));
     if (p && p.inventory !== undefined && p.inventory !== null && isFinite(Number(p.inventory)) && Number(p.inventory) <= 0) { return; }
+    var parent = price.parentNode;
     var row = document.createElement("div");
-    row.className = "cc-row";
-    price.parentNode.insertBefore(row, price);
-    row.appendChild(price);
+    row.className = "cc-foot";
+    var smalls = parent.querySelectorAll(":scope > small");
+    for (var k = 0; k < smalls.length; k++) {
+      if (/verified/i.test(smalls[k].textContent) && smalls[k] !== parent.querySelector(":scope > small:first-of-type") || (smalls.length === 1 && /^\W*BODEGS verified/i.test(smalls[k].textContent))) { row.appendChild(smalls[k]); }
+    }
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "cc-btn";
@@ -97,6 +101,7 @@
     btn.innerHTML = ICON;
     btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); add(card, btn); });
     row.appendChild(btn);
+    parent.appendChild(row);
   }
 
   function scan() {
