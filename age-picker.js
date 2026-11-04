@@ -198,5 +198,120 @@
     };
   }
 
-  window.AgePicker = { create: create };
+  /* ---- pop-up version: a tappable "Age" field that opens the ruler in a sheet ---- */
+  var FIELD_CSS = [
+    ".apf-btn { display: flex; align-items: center; gap: 12px; width: 100%; height: 54px; padding: 0 14px; border: 1.5px solid var(--apf-line, rgba(0,0,0,.22)); border-radius: 16px; background: transparent; color: var(--apf-color, #111); font-family: Roboto, 'Segoe UI', Arial, sans-serif; font-size: 16px; text-align: left; cursor: pointer; }",
+    ".apf-btn svg { flex: none; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }",
+    ".apf-btn .apf-txt { flex: 1; opacity: .6; }",
+    ".apf-btn.apf-done .apf-txt { opacity: 1; font-weight: 600; }",
+    ".apf-btn .apf-chev { width: 18px; height: 18px; opacity: .55; }",
+    ".apf-back { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,0); transition: background .22s ease; }",
+    ".apf-back.apf-open { background: rgba(0,0,0,.55); }",
+    ".apf-sheet { width: 100%; max-width: 480px; box-sizing: border-box; padding: 10px 16px calc(18px + env(safe-area-inset-bottom)); background: #fff; border-radius: 26px 26px 0 0; transform: translateY(100%); transition: transform .26s ease; font-family: Roboto, 'Segoe UI', Arial, sans-serif; }",
+    ".apf-open .apf-sheet { transform: translateY(0); }",
+    ".apf-grab { width: 42px; height: 5px; margin: 2px auto 12px; border-radius: 3px; background: rgba(0,0,0,.18); }",
+    ".apf-top { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 10px; }",
+    ".apf-top b { font-size: 17px; color: #111; }",
+    ".apf-top button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(0,0,0,.07); color: #111; font-size: 20px; line-height: 1; cursor: pointer; }",
+    ".apf-go { display: block; width: 100%; height: 56px; margin-top: 14px; border: 0; border-radius: 18px; background: var(--apf-color, #111); color: #fff; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer; }"
+  ].join("\n");
+
+  function field(host, options) {
+    options = options || {};
+    injectCss();
+    if (!document.getElementById("apf-css")) {
+      var st = document.createElement("style");
+      st.id = "apf-css";
+      st.textContent = FIELD_CSS;
+      document.head.appendChild(st);
+    }
+    var color = options.color || "#111";
+    var accent = options.accent || color;
+    var chosen = 0;
+    var current = options.value || 25;
+
+    host.textContent = "";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "apf-btn";
+    btn.style.setProperty("--apf-color", color);
+    if (options.line) { btn.style.setProperty("--apf-line", options.line); }
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9" width="16" height="11" rx="3"></rect><path d="M4 14c2.7 2 5.3 2 8 0s5.3-2 8 0"></path><path d="M12 9V6"></path><path d="M12 3.5c.9.9.9 1.6 0 2.5-.9-.9-.9-1.6 0-2.5z"></path></svg>' +
+      '<span class="apf-txt">Select your age</span>' +
+      '<svg class="apf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
+    host.appendChild(btn);
+    var txt = btn.querySelector(".apf-txt");
+
+    var back, picker, go;
+
+    function build() {
+      back = document.createElement("div");
+      back.className = "apf-back";
+      back.hidden = true;
+      var sheet = document.createElement("div");
+      sheet.className = "apf-sheet";
+      sheet.setAttribute("role", "dialog");
+      sheet.setAttribute("aria-modal", "true");
+      sheet.setAttribute("aria-label", "Choose your age");
+      sheet.innerHTML = '<div class="apf-grab"></div><div class="apf-top"><b>Your age</b><button type="button" aria-label="Close">\u00d7</button></div>';
+      var slot = document.createElement("div");
+      slot.style.setProperty("--ap-bg", color);
+      sheet.appendChild(slot);
+      go = document.createElement("button");
+      go.type = "button";
+      go.className = "apf-go";
+      go.style.setProperty("--apf-color", accent);
+      sheet.appendChild(go);
+      back.appendChild(sheet);
+      document.body.appendChild(back);
+
+      picker = create(slot, {
+        min: options.min, max: options.max, value: current,
+        onChange: function (v) { current = v; label(); }
+      });
+      label();
+
+      back.addEventListener("click", function (e) { if (e.target === back) { close(); } });
+      sheet.querySelector(".apf-top button").addEventListener("click", close);
+      go.addEventListener("click", function () {
+        chosen = picker.get();
+        txt.textContent = chosen + " years old";
+        btn.classList.add("apf-done");
+        if (options.onChange) { options.onChange(chosen); }
+        close();
+      });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !back.hidden) { close(); } });
+    }
+
+    function label() { if (go) { go.textContent = "I am " + current + " years old"; } }
+
+    function open() {
+      if (!back) { build(); }
+      back.hidden = false;
+      document.documentElement.style.overflow = "hidden";
+      picker.set(chosen || current);
+      current = picker.get();
+      label();
+      requestAnimationFrame(function () {
+        back.classList.add("apf-open");
+        picker.refresh();
+      });
+    }
+
+    function close() {
+      back.classList.remove("apf-open");
+      document.documentElement.style.overflow = "";
+      setTimeout(function () { back.hidden = true; }, 260);
+    }
+
+    btn.addEventListener("click", open);
+
+    return {
+      get: function () { return chosen || current; },
+      isSet: function () { return chosen > 0; },
+      open: open
+    };
+  }
+
+  window.AgePicker = { create: create, field: field };
 })();

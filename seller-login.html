@@ -75,7 +75,7 @@
       </div>
       <div id="ageWrap" hidden>
         <div class="lab">Your age</div>
-        <div id="agePicker" style="--ap-bg:#263B50;margin-bottom:18px"></div>
+        <div id="agePicker" style="margin-bottom:18px"></div>
       </div>
       <div id="acctWrap" hidden>
         <div class="lab">Your BODEGS account password</div>
@@ -103,7 +103,7 @@
   let state = "set";        // "set" = log in, "none" = create password, "reset" = forgot password
   let email = "";
   let knownAge = 0;      // age saved when the person created their BODEGS account (0 = not saved)
-  const agePicker = AgePicker.create($("agePicker"), { min: 18, max: 90, value: 25 });
+  const agePicker = AgePicker.field($("agePicker"), { min: 18, max: 90, value: 25, color: "#263B50", line: "rgba(38,59,80,.24)" });
 
   function say(kind, text) {
     $("err").hidden = $("ok").hidden = true;
@@ -163,7 +163,7 @@
       if (pw !== $("confirm").value) { say("err", "The two passwords do not match."); return; }
       if (state === "none") {
         if (knownAge && knownAge < 18) { say("err", "You need to be 18 or older to sell on BODEGS."); return; }
-        if (!knownAge && !agePicker.isSet()) { say("err", "Slide the ruler to choose your age."); return; }
+        if (!knownAge && !agePicker.isSet()) { say("err", "Tap Age to choose your age."); return; }
       }
     }
     $("go").disabled = true;
