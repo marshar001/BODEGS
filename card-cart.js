@@ -11,6 +11,7 @@
     ".product-card{border-radius:17px;corner-shape:squircle;color:#111;font-family:Roboto,'Segoe UI',Arial,sans-serif}",
     ".product-image{overflow:hidden;border-radius:14px 14px 0 0;corner-shape:squircle}",
     ".product-image img{display:block;width:100%;height:auto;border-radius:0}",
+    ".product-card .product-image img{width:100%;height:100%;object-fit:cover;object-position:center top}",
     ".product-card h3{margin:5px 3px 2px;font-family:Roboto,'Segoe UI',Arial,sans-serif;font-size:12.5px;font-weight:500;line-height:1.25;color:#111}",
     ".product-card p{margin:0 3px 3px;font-family:Roboto,'Segoe UI',Arial,sans-serif;font-size:16px;font-weight:700;line-height:1.2;color:#111}",
     ".product-card small,.product-card small:first-of-type{margin:0 3px 2px;font-family:Roboto,'Segoe UI',Arial,sans-serif;color:#6b6b6b}",
