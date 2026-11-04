@@ -27,6 +27,13 @@
     .category-item button { width: 54px; height: 54px; border-radius: 17px; }
     .category-item span { margin-top: 4px; font-size: 9px; }
     /* banner as wide as the product cards */
+    /* ---- welcome banner: photo slide (photo on the right edge) ---- */
+    .welcome-slide.wb-photo { overflow: hidden; background: #1f271e; }
+    .wb-photo .wb-img { position: absolute; top: 0; right: 0; bottom: 0; width: 46%; background: url("banner-jacket.jpg") center 6% / cover no-repeat; -webkit-mask-image: linear-gradient(to right, transparent 0, #000 42%); mask-image: linear-gradient(to right, transparent 0, #000 42%); }
+    .wb-photo .welcome-content { position: absolute; z-index: 2; left: 20px; top: 0; bottom: 0; width: 56%; max-width: 56%; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; text-align: left; }
+    .wb-photo .welcome-content p { margin: 0 0 6px; color: #e9aeb5; letter-spacing: 1.4px; font: 700 10.5px Roboto, "Segoe UI", Arial, sans-serif; }
+    .wb-photo .welcome-content h1 { margin: 0 0 12px; color: #f4ece1; font: 700 23px/1.12 Georgia, "Times New Roman", serif; }
+    .wb-photo .welcome-content button { height: 34px; padding: 0 16px; border: 0; border-radius: 12px; background: #f4ece1; color: #1f271e; font: 700 13px Roboto, "Segoe UI", Arial, sans-serif; cursor: pointer; }
     .welcome-carousel { margin-left: 4px; margin-right: 4px; }
     /* styles.css pulls row 2 up by 12px, which covers row 1's labels */
     .categories-row + .categories-row { margin-top: 2px; }
@@ -161,8 +168,18 @@
 
     <div class="welcome-track">
 
+      <!-- SLIDE 0: photo on the right edge -->
+      <div class="welcome-slide wb-photo active">
+        <div class="wb-img" role="img" aria-label="Floral jacket"></div>
+        <div class="welcome-content">
+          <p>NEW IN &middot; OUTERWEAR</p>
+          <h1>We sell it,<br>you style it.</h1>
+          <button type="button" data-href="category.html?cat=Outerwear">Shop outerwear &rarr;</button>
+        </div>
+      </div>
+
       <!-- SLIDE 1 -->
-      <div class="welcome-slide active">
+      <div class="welcome-slide">
         <div class="welcome-content">
           <p>WELCOME TO BODEGS</p>
           <h1>Discover fashion<br>you'll love.</h1>
@@ -195,6 +212,12 @@
         class="carousel-dot active"
         type="button"
         aria-label="Slide 1">
+      </button>
+
+      <button
+        class="carousel-dot"
+        type="button"
+        aria-label="Slide 0">
       </button>
 
       <button
@@ -841,7 +864,7 @@ function bodegsShowPrice(el, amount, cur) {
   // Welcome banner buttons ("Explore now", "Shop now", "Explore picks").
   document.querySelectorAll(".welcome-content button").forEach(function (button) {
     button.addEventListener("click", function () {
-      window.location.href = "explore.html";
+      window.location.href = button.getAttribute("data-href") || "explore.html";
     });
   });
 </script>
