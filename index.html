@@ -35,6 +35,16 @@
     .wb-photo .welcome-content p { margin: 0 0 6px; color: var(--wb-accent, #e9aeb5); letter-spacing: 1.4px; font: 700 10.5px Roboto, "Segoe UI", Arial, sans-serif; }
     .wb-photo .welcome-content h1 { margin: 0 0 12px; color: var(--wb-text, #f4ece1); font: 700 23px/1.12 Georgia, "Times New Roman", serif; }
     .wb-photo .welcome-content button { height: 34px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--wb-btn, #f4ece1); color: var(--wb-btn-text, #1f271e); font: 700 13px Roboto, "Segoe UI", Arial, sans-serif; cursor: pointer; }
+    /* ---- welcome banner: three-look collage slide ---- */
+    .welcome-slide.wb-collage { overflow: hidden; background: linear-gradient(115deg, #2a1c17 0%, #3b2820 60%, #4a3027 100%); }
+    .wb-collage .welcome-content { position: absolute; z-index: 3; left: 20px; top: 0; bottom: 0; width: 40%; max-width: 40%; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; text-align: left; }
+    .wb-collage .welcome-content p { margin: 0 0 6px; color: #e0b48f; letter-spacing: 1.4px; font: 700 10.5px Roboto, "Segoe UI", Arial, sans-serif; }
+    .wb-collage .welcome-content h1 { margin: 0 0 12px; color: #f6ebdd; font: 700 23px/1.12 Georgia, "Times New Roman", serif; }
+    .wb-collage .welcome-content button { height: 32px; padding: 0 12px; border: 0; border-radius: 12px; background: #8a3a45; color: #f6ebdd !important; font: 700 12px Roboto, "Segoe UI", Arial, sans-serif; cursor: pointer; }
+    .wb-look { position: absolute; z-index: 1; bottom: -8px; width: 20%; border-radius: 18px; background-size: cover; background-position: center top; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+    .wb-look.l1 { right: 38%; height: 74%; bottom: 14px; }
+    .wb-look.l2 { right: 21%; height: 88%; bottom: 10px; z-index: 2; }
+    .wb-look.l3 { right: 4%; height: 74%; bottom: 14px; }
     .welcome-carousel { margin-left: 4px; margin-right: 4px; }
     /* styles.css pulls row 2 up by 12px, which covers row 1's labels */
     .categories-row + .categories-row { margin-top: 2px; }
@@ -189,6 +199,18 @@
         </div>
       </div>
 
+      <!-- SLIDE: three looks -->
+      <div class="welcome-slide wb-collage">
+        <div class="wb-look l1" style="background-image: url('banner-look1.jpg')" role="img" aria-label="Camo cargo look"></div>
+        <div class="wb-look l2" style="background-image: url('banner-look2.jpg')" role="img" aria-label="Faux fur hoodie"></div>
+        <div class="wb-look l3" style="background-image: url('banner-look3.jpg')" role="img" aria-label="Leather jacket look"></div>
+        <div class="welcome-content">
+          <p>COLD SEASON</p>
+          <h1>Layer it<br>your way.</h1>
+          <button type="button" data-href="category.html?cat=Outerwear">Shop now &rarr;</button>
+        </div>
+      </div>
+
       <!-- SLIDE 1 -->
       <div class="welcome-slide">
         <div class="welcome-content">
@@ -235,6 +257,12 @@
         class="carousel-dot"
         type="button"
         aria-label="Slide denim">
+      </button>
+
+      <button
+        class="carousel-dot"
+        type="button"
+        aria-label="Slide looks">
       </button>
 
       <button
