@@ -719,6 +719,8 @@
     </a>
 
   </nav>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
     <script>
     (function () {
 
@@ -771,7 +773,7 @@
       let user = read(KEY_USER, null);
 
       if (!user || user.loggedIn !== true) {
-        window.location.replace("auth.html");
+        window.location.replace("login.html?next=profile.html");
         return;
       }
 
@@ -1125,19 +1127,26 @@
         });
       }
 
-      function signOut() {
-        user.loggedIn = false;
-        write(KEY_USER, user);
-        window.location.href = "auth.html";
+      /* Log out of the real BODEGS account (Supabase), clear this device's copy, then go to Home. */
+      async function endSession() {
+        try { if (typeof sb !== "undefined") { await sb.auth.signOut(); } } catch (error) {}
+        try { sessionStorage.removeItem("bodegsSellerAuth"); } catch (error) {}
       }
 
-      function deleteProfile() {
+      async function signOut() {
+        await endSession();
+        remove(KEY_USER);
+        window.location.href = "index.html";
+      }
+
+      async function deleteProfile() {
         const sure = window.confirm(
           "Delete your profile? This removes your account details, saved addresses and photo from this device."
         );
 
         if (!sure) return;
 
+        await endSession();
         remove(KEY_USER);
         remove(KEY_ADDRESSES);
         remove(KEY_AVATAR);
