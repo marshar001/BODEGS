@@ -126,3 +126,15 @@ async function submitBoutiqueApplication(fields, files) {
   s.src = "theme.js?v=20261031";
   document.head.appendChild(s);
 })();
+
+// ---------- bottom navigation: one shared bar on every page that has one (including profile.html) ----------
+(function () {
+  function add() {
+    if (!document.querySelector("nav.bottom-nav")) return;
+    if (document.querySelector('script[src^="nav.js"]')) return;
+    const s = document.createElement("script");
+    s.src = "nav.js?v=2";
+    document.body.appendChild(s);
+  }
+  if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", add); } else { add(); }
+})();
