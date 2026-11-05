@@ -145,7 +145,7 @@
   $("google").addEventListener("click", async () => {
     say("err", "");
     try {
-      const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: new URL(next, location.href).href } });
+      const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: new URL("login.html?next=" + encodeURIComponent(next), location.href).href } });
       if (error) throw error;
     } catch (err) { say("err", friendly(err)); }
   });
