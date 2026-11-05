@@ -17,12 +17,12 @@
   ];
 
   var CSS = [
-    "nav.bottom-nav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:1000;height:64px;padding:0;margin:0 auto;display:block;border-radius:26px;corner-shape:squircle;background:var(--deep-green,#173b32);box-shadow:0 12px 30px rgba(0,0,0,.18);max-width:520px;-webkit-tap-highlight-color:transparent}",
+    "nav.bottom-nav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:1000;height:64px;padding:0;margin:0 auto;display:block;border-radius:32px;background:var(--deep-green,#173b32);box-shadow:0 12px 30px rgba(0,0,0,.18);max-width:520px;-webkit-tap-highlight-color:transparent}",
     "nav.bottom-nav .bn-wrap{position:relative;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;height:100%;padding:0 6px}",
     "nav.bottom-nav .bn-pill{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px) / 5);pointer-events:none}",
-    "nav.bottom-nav .bn-pill i{position:absolute;inset:0;border-radius:22px;corner-shape:squircle;background:rgba(255,255,255,.18)}",
+    "nav.bottom-nav .bn-pill i{position:absolute;inset:0;border-radius:27px;background:rgba(255,255,255,.18)}",
     "nav.bottom-nav .bn-pill.go{transition:transform .42s cubic-bezier(.34,1.32,.5,1)}",
-    "nav.bottom-nav a.nav-item{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:52px;width:100%;padding:0;border:0;border-radius:22px;corner-shape:squircle;background:transparent;color:rgba(255,255,255,.65);font-family:Arial,sans-serif;font-size:10px;font-weight:400;letter-spacing:0;text-decoration:none;transition:color .25s ease,transform .15s ease}",
+    "nav.bottom-nav a.nav-item{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:52px;width:100%;padding:0;border:0;border-radius:27px;background:transparent;color:rgba(255,255,255,.65);font-family:Arial,sans-serif;font-size:10px;font-weight:400;letter-spacing:0;text-decoration:none;transition:color .25s ease,transform .15s ease}",
     "nav.bottom-nav a.nav-item:active{transform:scale(.95)}",
     "nav.bottom-nav a.nav-item.active{background:transparent;color:#fff;font-weight:600}",
     "nav.bottom-nav a.nav-item svg{width:22px;height:22px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}",
