@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="dark.js?v=1"></script>
+  <script src="dark.js?v=2"></script>
   <script>
   // BODEGS login guard: uses the real Supabase session instead of the old fake login.
   (function () {
@@ -50,6 +50,7 @@
       max-width: 720px;
       margin: 0 auto;
       min-height: 100vh;
+      padding-top: 16px;
       padding-bottom: 110px;
     }
 
@@ -69,7 +70,7 @@
     }
 
     .profile-body {
-      margin: -34px 16px 0;
+      margin: 0 16px;
     }
 
     /* Profile card */
@@ -388,12 +389,12 @@
     body.st-open nav.bottom-nav { display: none !important; }
     .settings-page { position: fixed; inset: 0; z-index: 1500; overflow-y: auto; background: var(--cream); font-family: Arial, sans-serif; color: var(--text); }
     .settings-page[hidden] { display: none; }
-    .st-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; height: 58px; padding: 0 14px; background: var(--cream-light); border-bottom: 1px solid rgba(23,59,50,.08); }
+    .st-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; height: 58px; padding: 0 14px; background: var(--cream); }
     .st-top h1 { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; color: var(--text); }
     .st-back { width: 38px; height: 38px; padding: 0; border: 0; background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center; }
     .st-back svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .st-wrap { max-width: 720px; margin: 0 auto; padding-bottom: 40px; }
-    .st-group { margin-top: 12px; background: var(--cream-light); }
+    .st-wrap { max-width: 720px; margin: 0 auto; padding: 4px 16px 40px; }
+    .st-group { margin-top: 14px; background: var(--cream-light); border: 1px solid rgba(23,59,50,.06); border-radius: 22px; overflow: hidden; }
     .st-row { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 54px; padding: 0 18px; border: 0; border-bottom: 1px solid rgba(23,59,50,.08); background: transparent; color: var(--text); font: 15px Arial, sans-serif; text-align: left; cursor: pointer; }
     .st-row:last-child { border-bottom: 0; }
     .st-row:active { background: rgba(23,59,50,.05); }
@@ -650,10 +651,6 @@
 
   <main class="profile-page">
 
-    <header class="profile-header">
-      <h1>My Profile</h1>
-    </header>
-
     <div class="profile-body">
 
       <!-- PROFILE CARD -->
@@ -708,13 +705,6 @@
           </span>
         </a>
       </div>
-
-      <!-- APPEARANCE -->
-      <section class="ap-card">
-        <strong>Appearance</strong>
-        <small>Light, Dark, or Auto (follows your phone)</small>
-        <div id="apToggle"></div>
-      </section>
 
       <!-- MENU -->
       <section class="menu-card" id="menu" aria-label="Account menu"></section>
@@ -1421,11 +1411,6 @@
         ]);
         group([["Log out", confirmedSignOut]]);
         group([["Delete account", confirmedDelete, true]]);
-      })();
-
-      (function () {
-        const slot = document.getElementById("apToggle");
-        if (slot && window.BODEGSTheme && window.BODEGSTheme.toggle) slot.appendChild(window.BODEGSTheme.toggle());
       })();
 
       document.getElementById("gearBtn").addEventListener("click", openSettings);

@@ -138,7 +138,7 @@
       return "rgba(255,255,255," + (k.a * .9).toFixed(3) + ")";    /* faint dark tint on a light surface -> faint light tint */
     }
     if (o.l >= .62) {
-      if (chroma(k) > .085) return hsl(o.h, Math.min(o.s, .6) * .45, .2, 1);    /* pale coloured badge: dark, same hue, softer */
+      if ((chroma(k) > .12 || (chroma(k) > .06 && (o.h < 22 || o.h > 60))) && o.l < .96) return hsl(o.h, Math.min(o.s, .6) * .45, .2, 1);    /* pale coloured badge: dark, same hue, softer */
       if (o.l >= .9) {
         if (tag === "BODY" || tag === "HTML") return PAGE;
         if (bodyRgb && k.r === bodyRgb.r && k.g === bodyRgb.g && k.b === bodyRgb.b) return PAGE;
@@ -176,6 +176,8 @@
   var PROPS = ["background-color", "color", "border-top-color", "border-right-color", "border-bottom-color",
     "border-left-color", "box-shadow", "text-shadow"];
   var SKIP = ".welcome-carousel,.dk-skip,script,style,link,meta,noscript,head,title,img,video,canvas,picture,source";
+  /* every product / order card gets exactly the same colour */
+  var CARDSEL = "a.product-card,.product-card,.explore-product,.explore-product > a,.recommended-card,.recently-viewed-card,.cart-product,.order-card,.sk-product,.sk-store-card,.pp-block,a.pp-visit";
   var vw = window.innerWidth;
 
   function skipped(el) {
@@ -222,7 +224,10 @@
       var big = tag === "NAV" || tag === "HEADER" || tag === "FOOTER" ||
         (el.offsetWidth >= vw * .6 && el.offsetHeight >= 40 && tag !== "BUTTON" && tag !== "A" && tag !== "INPUT");
       var rec = { el: el, d: [] };
-      if (!hasImg) { var b = mapBg(cs.backgroundColor, big, tag); if (b) rec.d.push(["background-color", b]); }
+      var isCard = false;
+      try { isCard = el.matches(CARDSEL); } catch (e) {}
+      if (isCard && cs.backgroundColor !== "rgba(0, 0, 0, 0)") rec.d.push(["background-color", CARD]);
+      else if (!hasImg) { var b = mapBg(cs.backgroundColor, big, tag); if (b) rec.d.push(["background-color", b]); }
       var t = mapText(cs.color);
       if (t) rec.d.push(["color", t]);
       var sides = ["top", "right", "bottom", "left"];
