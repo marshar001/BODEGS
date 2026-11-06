@@ -367,13 +367,62 @@
       text-decoration: none;
     }
 
-    .ap-list { display: grid; gap: 10px; }
-    .ap-opt { position: relative; display: block; width: 100%; text-align: left; padding: 14px 44px 14px 16px; border: 1.5px solid rgba(23,59,50,.14); border-radius: 14px; background: var(--cream-light); color: var(--text); font: inherit; cursor: pointer; }
-    .ap-opt strong { display: block; font-size: 15px; }
-    .ap-opt small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
-    .ap-dot { position: absolute; right: 16px; top: 50%; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%; border: 2px solid var(--muted); }
-    .ap-opt.on { border-color: var(--deep-green); }
-    .ap-opt.on .ap-dot { border-color: var(--deep-green); background: radial-gradient(var(--deep-green) 0 45%, transparent 50%); }
+    /* settings icon on the profile card */
+    .profile-card { position: relative; }
+    .profile-info { padding-right: 38px; }
+    .gear {
+      position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; padding: 0;
+      border: 0; border-radius: 50%; background: rgba(23, 59, 50, 0.08); color: var(--deep-green);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .gear svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .gear:active { transform: scale(.94); }
+
+    /* appearance card */
+    .ap-card { margin: 14px 0 0; padding: 14px 16px 16px; background: var(--cream-light); border: 1px solid rgba(23,59,50,.06); border-radius: 22px; font-family: Arial, sans-serif; }
+    .ap-card strong { display: block; font-size: 15px; color: var(--text); }
+    .ap-card small { display: block; margin: 2px 0 12px; font-size: 12.5px; color: var(--muted); }
+
+    /* settings page */
+    body.st-open { overflow: hidden; }
+    body.st-open nav.bottom-nav { display: none !important; }
+    .settings-page { position: fixed; inset: 0; z-index: 1500; overflow-y: auto; background: var(--cream); font-family: Arial, sans-serif; color: var(--text); }
+    .settings-page[hidden] { display: none; }
+    .st-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; height: 58px; padding: 0 14px; background: var(--cream-light); border-bottom: 1px solid rgba(23,59,50,.08); }
+    .st-top h1 { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; color: var(--text); }
+    .st-back { width: 38px; height: 38px; padding: 0; border: 0; background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center; }
+    .st-back svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .st-wrap { max-width: 720px; margin: 0 auto; padding-bottom: 40px; }
+    .st-group { margin-top: 12px; background: var(--cream-light); }
+    .st-row { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 54px; padding: 0 18px; border: 0; border-bottom: 1px solid rgba(23,59,50,.08); background: transparent; color: var(--text); font: 15px Arial, sans-serif; text-align: left; cursor: pointer; }
+    .st-row:last-child { border-bottom: 0; }
+    .st-row:active { background: rgba(23,59,50,.05); }
+    .st-row svg { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .st-row.danger { color: #a3392f; }
+    .st-ap { padding: 14px 18px 16px; }
+    .st-ap strong { display: block; font-size: 15px; margin-bottom: 10px; font-weight: 400; }
+
+    /* confirmation pop-up */
+    .cf-back { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(18,30,26,.55); }
+    .cf-back[hidden] { display: none; }
+    .cf-box { width: 100%; max-width: 340px; padding: 22px 20px 16px; border-radius: 24px; background: var(--cream-light); font-family: Arial, sans-serif; text-align: center; animation: sheetUp .2s ease-out; }
+    .cf-box h3 { font-family: Arial, sans-serif; font-size: 18px; color: var(--text); }
+    .cf-box p { margin: 8px 0 18px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+    .cf-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .cf-btns button { height: 46px; border: 0; border-radius: 14px; font: 700 15px Arial, sans-serif; cursor: pointer; }
+    .cf-no { background: rgba(23,59,50,.08); color: var(--text); }
+    .cf-yes { background: var(--deep-green); color: #fff; }
+    .cf-yes.danger { background: #a3392f; }
+
+    /* feedback */
+    .fb-stars { display: flex; gap: 8px; margin: 6px 0 14px; }
+    .fb-stars button { border: 0; background: transparent; font-size: 32px; line-height: 1; color: rgba(23,59,50,.25); padding: 0; cursor: pointer; }
+    .fb-stars button.on { color: #e0a526; }
+    .fb-text { box-sizing: border-box; width: 100%; min-height: 96px; padding: 12px; border: 1px solid rgba(23,59,50,.14); border-radius: 14px; background: var(--cream); color: var(--text); font: 14px Arial, sans-serif; resize: vertical; }
+    .fb-send { width: 100%; height: 48px; margin-top: 12px; border: 0; border-radius: 14px; background: var(--deep-green); color: #fff; font: 700 15px Arial, sans-serif; }
+    .doc h4 { margin: 16px 0 4px; font: 700 14px Arial, sans-serif; }
+    .doc p { margin: 0 0 6px; }
+    .doc .btn2 { width: 100%; height: 46px; margin-top: 14px; border: 0; border-radius: 14px; background: rgba(23,59,50,.08); color: var(--text); font: 700 14px Arial, sans-serif; }
     /* Bottom sheet */
     .sheet-backdrop {
       position: fixed;
@@ -620,6 +669,10 @@
           <input type="file" id="avatarInput" accept="image/*" hidden>
         </div>
 
+        <button class="gear" id="gearBtn" type="button" aria-label="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.7-1.3-1.8-3.1-2 .8a7.6 7.6 0 0 0-2.6-1.5L14.4 3h-3.6l-.3 2.4a7.6 7.6 0 0 0-2.6 1.5l-2-.8-1.8 3.1 1.7 1.3a7.6 7.6 0 0 0 0 3l-1.7 1.3 1.8 3.1 2-.8a7.6 7.6 0 0 0 2.6 1.5l.3 2.4h3.6l.3-2.4a7.6 7.6 0 0 0 2.6-1.5l2 .8 1.8-3.1-1.7-1.3Z"/></svg>
+        </button>
+
         <div class="profile-info">
           <h2 id="profileName"></h2>
           <p class="email" id="profileEmail"></p>
@@ -656,6 +709,13 @@
         </a>
       </div>
 
+      <!-- APPEARANCE -->
+      <section class="ap-card">
+        <strong>Appearance</strong>
+        <small>Light, Dark, or Auto (follows your phone)</small>
+        <div id="apToggle"></div>
+      </section>
+
       <!-- MENU -->
       <section class="menu-card" id="menu" aria-label="Account menu"></section>
 
@@ -678,6 +738,27 @@
         <button class="sheet-close" id="sheetClose" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="sheet-body" id="sheetBody"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="settings-page" id="settingsPage" hidden>
+    <div class="st-top">
+      <button class="st-back" id="stBack" type="button" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <h1>Settings</h1>
+    </div>
+    <div class="st-wrap" id="stWrap"></div>
+  </div>
+
+  <!-- CONFIRM POP-UP -->
+  <div class="cf-back" id="cfBack" hidden>
+    <div class="cf-box" role="alertdialog" aria-modal="true" aria-labelledby="cfTitle">
+      <h3 id="cfTitle"></h3>
+      <p id="cfText"></p>
+      <div class="cf-btns">
+        <button type="button" class="cf-no" id="cfNo">Cancel</button>
+        <button type="button" class="cf-yes" id="cfYes">Confirm</button>
+      </div>
     </div>
   </div>
 
@@ -1136,22 +1217,6 @@
         });
       }
 
-      function appearanceSheet() {
-        openSheet("Appearance", function (body) {
-          const cur = (window.BODEGSTheme && window.BODEGSTheme.get()) || "auto";
-          const list = el("div", { class: "ap-list" });
-          [["auto", "Auto", "Matches your phone's setting"], ["light", "Light", "Always light"], ["dark", "Dark", "Always dark"]].forEach(function (o) {
-            const b = el("button", { type: "button", class: "ap-opt" + (cur === o[0] ? " on" : "") });
-            b.innerHTML = "<strong></strong><small></small><span class='ap-dot'></span>";
-            b.querySelector("strong").textContent = o[1];
-            b.querySelector("small").textContent = o[2];
-            b.addEventListener("click", function () { if (window.BODEGSTheme) window.BODEGSTheme.set(o[0]); });
-            list.appendChild(b);
-          });
-          body.appendChild(list);
-        });
-      }
-
       /* Log out of the real BODEGS account (Supabase), clear this device's copy, then go to Home. */
       async function endSession() {
         try { if (typeof sb !== "undefined") { await sb.auth.signOut(); } } catch (error) {}
@@ -1178,19 +1243,207 @@
         remove("weraeRememberedEmail");
         window.location.href = "index.html";
                                    }
-            /* ---------- menu ---------- */
+      
+      /* ---------- confirmation pop-up ---------- */
+      function confirmBox(title, text, yesLabel, danger) {
+        return new Promise(function (resolve) {
+          const back = document.getElementById("cfBack");
+          const yes = document.getElementById("cfYes");
+          const no = document.getElementById("cfNo");
+          document.getElementById("cfTitle").textContent = title;
+          document.getElementById("cfText").textContent = text;
+          yes.textContent = yesLabel;
+          yes.className = "cf-yes" + (danger ? " danger" : "");
+          back.hidden = false;
+          function done(v) {
+            back.hidden = true;
+            yes.onclick = null; no.onclick = null; back.onclick = null;
+            resolve(v);
+          }
+          yes.onclick = function () { done(true); };
+          no.onclick = function () { done(false); };
+          back.onclick = function (e) { if (e.target === back) done(false); };
+        });
+      }
+
+      async function confirmedSignOut() {
+        const ok = await confirmBox("Log out?", "You will need to sign in again to see your orders and cart.", "Log out", false);
+        if (!ok) return;
+        await endSession();
+        window.location.href = "index.html";
+      }
+
+      async function confirmedDelete() {
+        const ok = await confirmBox(
+          "Delete your account?",
+          "This removes your details, saved addresses and photo, and signs you out. This cannot be undone.",
+          "Delete account", true
+        );
+        if (!ok) return;
+        let removed = false;
+        try {
+          if (typeof sb !== "undefined" && sb.rpc) {
+            const res = await sb.rpc("delete_my_account");
+            removed = !res.error;
+          }
+        } catch (error) {}
+        await endSession();
+        remove(KEY_USER);
+        remove(KEY_ADDRESSES);
+        remove(KEY_AVATAR);
+        remove("weraeRememberedEmail");
+        window.location.href = "index.html";
+      }
+
+      /* ---------- settings page ---------- */
+      const settingsPage = document.getElementById("settingsPage");
+
+      function docSheet(title, parts) {
+        openSheet(title, function (body) {
+          const box = el("div", { class: "doc" });
+          parts.forEach(function (p) {
+            box.appendChild(el(p[0], { text: p[1] }));
+          });
+          body.appendChild(box);
+        });
+      }
+
+      function termsSheet() {
+        docSheet("Terms & Conditions", [
+          ["h4", "Using BODEGS"], ["p", "BODEGS is a marketplace where verified sellers list fashion items. By creating an account you agree to give correct details and to use the app lawfully."],
+          ["h4", "Orders and payment"], ["p", "Orders are paid for and delivered through BODEGS. Prices are in naira (₦). A seller may cancel an order if an item is no longer available, and you will be told."],
+          ["h4", "Returns and disputes"], ["p", "If an item is not as described, contact BODEGS support as soon as you receive it so we can help."],
+          ["h4", "Your account"], ["p", "Keep your login private. BODEGS may suspend accounts that break these terms."]
+        ]);
+      }
+
+      function privacySheet() {
+        docSheet("Privacy & Cookie Policy", [
+          ["h4", "What we keep"], ["p", "Your name, email, age and delivery details so we can run your account and deliver your orders. Your login is handled securely by our database provider."],
+          ["h4", "On your phone"], ["p", "BODEGS saves a few small items in your browser: your cart, recently viewed items, saved addresses, profile photo and your Light / Dark choice."],
+          ["h4", "Sharing"], ["p", "We share your delivery details only with the seller and delivery partner for your order. We do not sell your information."],
+          ["h4", "Your choices"], ["p", "You can edit your details in Edit Profile, clear saved data in Manage Cookies, or delete your account in Settings."]
+        ]);
+      }
+
+      function aboutSheet() {
+        docSheet("About BODEGS", [
+          ["h4", "BODEGS"], ["p", "We sell it, you style it."],
+          ["p", "BODEGS brings verified fashion sellers and shoppers together in one place in Nigeria, with payment and delivery handled through BODEGS."]
+        ]);
+      }
+
+      function cookiesSheet() {
+        openSheet("Manage Cookies", function (body) {
+          const box = el("div", { class: "doc" });
+          box.appendChild(el("p", { text: "BODEGS only uses essential storage on this phone: it keeps you signed in and remembers your cart, addresses and appearance. There are no advertising cookies." }));
+          const clear = el("button", { class: "btn2", type: "button", text: "Clear recently viewed" });
+          clear.addEventListener("click", function () {
+            remove("weraeRecentlyViewed");
+            toast("Recently viewed cleared");
+          });
+          box.appendChild(clear);
+          body.appendChild(box);
+        });
+      }
+
+      function feedbackSheet() {
+        openSheet("Rating & Feedback", function (body) {
+          let stars = 0;
+          body.appendChild(el("p", { text: "How is your BODEGS experience?" }));
+          const row = el("div", { class: "fb-stars" });
+          const btns = [1, 2, 3, 4, 5].map(function (n) {
+            const b = el("button", { type: "button", text: "★" });
+            b.setAttribute("aria-label", n + " star" + (n > 1 ? "s" : ""));
+            b.addEventListener("click", function () {
+              stars = n;
+              btns.forEach(function (x, i) { x.className = i < n ? "on" : ""; });
+            });
+            row.appendChild(b);
+            return b;
+          });
+          body.appendChild(row);
+          const text = el("textarea", { class: "fb-text", placeholder: "Tell us what we can do better (optional)" });
+          body.appendChild(text);
+          const send = el("button", { class: "fb-send", type: "button", text: "Send feedback" });
+          send.addEventListener("click", function () {
+            if (!stars && !text.value.trim()) { toast("Add a rating or a message first"); return; }
+            const msg = "BODEGS feedback\nRating: " + (stars || "-") + "/5\n" + text.value.trim();
+            const list = read("bodegsFeedback", []);
+            list.push({ stars: stars, text: text.value.trim(), at: Date.now() });
+            write("bodegsFeedback", list);
+            if (SUPPORT.whatsapp) { window.open("https://wa.me/" + SUPPORT.whatsapp.replace(/\D/g, "") + "?text=" + encodeURIComponent(msg), "_blank"); }
+            else if (SUPPORT.email) { window.location.href = "mailto:" + SUPPORT.email + "?subject=" + encodeURIComponent("BODEGS feedback") + "&body=" + encodeURIComponent(msg); }
+            closeSheet();
+            toast("Thank you for your feedback");
+          });
+          body.appendChild(send);
+        });
+      }
+
+      function openSettings() {
+        settingsPage.hidden = false;
+        document.body.classList.add("st-open");
+        settingsPage.scrollTop = 0;
+      }
+      function closeSettings() {
+        settingsPage.hidden = true;
+        document.body.classList.remove("st-open");
+      }
+
+      (function buildSettings() {
+        const wrap = document.getElementById("stWrap");
+        const chev = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+
+        const ap = el("div", { class: "st-group st-ap" });
+        ap.appendChild(el("strong", { text: "Appearance" }));
+        if (window.BODEGSTheme && window.BODEGSTheme.toggle) ap.appendChild(window.BODEGSTheme.toggle());
+        wrap.appendChild(ap);
+
+        function group(rows) {
+          const g = el("div", { class: "st-group" });
+          rows.forEach(function (r) {
+            const b = el("button", { class: "st-row" + (r[2] ? " danger" : ""), type: "button" });
+            b.innerHTML = "<span></span>" + (r[2] ? "" : chev);
+            b.querySelector("span").textContent = r[0];
+            b.addEventListener("click", r[1]);
+            g.appendChild(b);
+          });
+          wrap.appendChild(g);
+        }
+
+        group([
+          ["Terms & Conditions", termsSheet],
+          ["Privacy & Cookie Policy", privacySheet],
+          ["Rating & Feedback", feedbackSheet],
+          ["About BODEGS", aboutSheet],
+          ["Manage Cookies", cookiesSheet]
+        ]);
+        group([["Log out", confirmedSignOut]]);
+        group([["Delete account", confirmedDelete, true]]);
+      })();
+
+      (function () {
+        const slot = document.getElementById("apToggle");
+        if (slot && window.BODEGSTheme && window.BODEGSTheme.toggle) slot.appendChild(window.BODEGSTheme.toggle());
+      })();
+
+      document.getElementById("gearBtn").addEventListener("click", openSettings);
+      document.getElementById("stBack").addEventListener("click", closeSettings);
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && sheet.hidden && !settingsPage.hidden) closeSettings();
+      });
+
+      /* ---------- menu ---------- */
 
       const MENU = [
         { icon: "shield", title: "Open a Boutique on BODEGS", sub: "Apply to sell on BODEGS", href: "boutique.html" },
         { icon: "user", title: "Edit Profile", action: editProfileSheet },
         { icon: "pin", title: "Delivery Address List", sub: "Manage delivery addresses", action: addressesSheet },
         { icon: "shield", title: "Verification status", sub: "Check your account details", action: verificationSheet },
-        { icon: "moon", title: "Appearance", sub: "Light, Dark or Auto", action: appearanceSheet },
         { icon: "orders", title: "Order History", sub: "See and track your orders", href: "orders.html" },
         { icon: "help", title: "FAQs", sub: "Read answers to frequently asked questions", action: faqSheet },
-        { icon: "play", title: "How BODEGS works", sub: "A quick guide to buying on BODEGS", action: howItWorksSheet },
-        { icon: "trash", title: "Delete profile", danger: true, action: deleteProfile },
-        { icon: "out", title: "Sign Out", action: signOut }
+        { icon: "play", title: "How BODEGS works", sub: "A quick guide to buying on BODEGS", action: howItWorksSheet }
       ];
 
       const menu = document.getElementById("menu");
@@ -1258,10 +1511,11 @@
       })();
 
       renderProfile();
+      try { window.scrollTo(0, 0); } catch (error) {}
 
     })();
   </script>
 
-  <script src="nav.js?v=3"></script>
+  <script src="nav.js?v=4"></script>
 </body>
 </html>

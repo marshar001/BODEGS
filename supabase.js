@@ -133,7 +133,7 @@ async function submitBoutiqueApplication(fields, files) {
     if (!document.querySelector("nav.bottom-nav")) return;
     if (document.querySelector('script[src^="nav.js"]')) return;
     const s = document.createElement("script");
-    s.src = "nav.js?v=2";
+    s.src = "nav.js?v=4";
     document.body.appendChild(s);
   }
   if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", add); } else { add(); }
