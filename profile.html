@@ -1371,15 +1371,31 @@
         });
       }
 
-      function openSettings() {
+      /* Settings is its own "page" in the browser history, so the phone's Back button closes it
+         (instead of leaving Profile) and a reload keeps you inside Settings. */
+      function showSettings() {
         settingsPage.hidden = false;
         document.body.classList.add("st-open");
         settingsPage.scrollTop = 0;
       }
-      function closeSettings() {
+      function hideSettings() {
         settingsPage.hidden = true;
         document.body.classList.remove("st-open");
       }
+      function openSettings() {
+        if (location.hash !== "#settings") {
+          try { history.pushState({ settings: 1 }, "", "#settings"); } catch (error) {}
+        }
+        showSettings();
+      }
+      function closeSettings() {
+        if (location.hash === "#settings") { history.back(); }
+        else { hideSettings(); }
+      }
+      window.addEventListener("popstate", function () {
+        if (location.hash === "#settings") showSettings();
+        else hideSettings();
+      });
 
       (function buildSettings() {
         const wrap = document.getElementById("stWrap");
@@ -1414,6 +1430,7 @@
       })();
 
       document.getElementById("gearBtn").addEventListener("click", openSettings);
+      if (location.hash === "#settings") showSettings();
       document.getElementById("stBack").addEventListener("click", closeSettings);
       document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && sheet.hidden && !settingsPage.hidden) closeSettings();
