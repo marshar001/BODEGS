@@ -65,6 +65,22 @@
       background: linear-gradient(to top, rgba(0,0,0,.7), rgba(0,0,0,0));
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+  
+    /* ===== pull down to refresh (logo header) ===== */
+    html, body { overscroll-behavior-y: contain; }
+    .ptr-head { position: fixed; top: 0; left: 0; right: 0; height: 150px; z-index: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; padding-top: 20px; background: var(--cream-light, #f8f5ee); pointer-events: none; }
+    .ptr-logo { position: relative; width: 190px; aspect-ratio: 814 / 152; }
+    .ptr-logo i { position: absolute; inset: 0; background: var(--deep-green, #173b32); -webkit-mask: url(bodegs-wordmark.png) center / 100% 100% no-repeat; mask: url(bodegs-wordmark.png) center / 100% 100% no-repeat; }
+    .ptr-logo b { position: absolute; left: 14.74%; top: -6.58%; width: 21.13%; aspect-ratio: 1; background: var(--deep-green, #173b32); -webkit-mask: url(bodegs-o.png) center / 100% 100% no-repeat; mask: url(bodegs-o.png) center / 100% 100% no-repeat; transform: rotate(var(--ptr-rot, 0deg)); }
+    .ptr-head.spin .ptr-logo b { animation: ptrSpin .9s linear infinite; }
+    @keyframes ptrSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .ptr-head p { margin: 0; font: 12px Arial, sans-serif; letter-spacing: .04em; color: var(--muted, #78837d); }
+    [data-theme=dark] .ptr-head { background: #222; }
+    [data-theme=dark] .ptr-logo i, [data-theme=dark] .ptr-logo b { background: #e6e6e6; }
+    [data-theme=dark] .ptr-head p { color: #9a9a9a; }
+    #ptrContent { position: relative; z-index: 1; background: var(--cream, #f5f0e7); min-height: 100vh; }
+    #ptrContent.snap { transition: transform .28s cubic-bezier(.2,.8,.3,1); }
+    @media (prefers-reduced-motion: reduce) { .ptr-head.spin .ptr-logo b { animation-duration: 2s; } }
   </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
@@ -74,6 +90,12 @@
 <body>
 
   <!-- BODEGS SPLASH SCREEN -->
+  <!-- pull-to-refresh header -->
+  <div class="ptr-head dk-skip" id="ptrHead" aria-hidden="true">
+    <div class="ptr-logo"><i></i><b></b></div>
+    <p>We sell it, you style it.</p>
+  </div>
+
   <div id="bodegsSplash" class="bodegs-splash" aria-label="BODEGS — Style it your way">
     <div class="splash-brand">
       <h1>BODEGS</h1>
@@ -873,6 +895,73 @@ function bodegsShowPrice(el, amount, cur) {
   });
 </script>
 
+<script>
+/* Pull the home page down to refresh: the BODEGS logo shows above the page and the hexagon spins. */
+(function () {
+  var head = document.getElementById("ptrHead");
+  var logoO = head && head.querySelector("b");
+  var wrap = document.createElement("div");
+  wrap.id = "ptrContent";
+  var first = document.querySelector(".welcome-carousel");
+  if (!head || !first) return;
+  first.parentNode.insertBefore(wrap, first);
+  Array.prototype.slice.call(document.body.children).forEach(function (n) {
+    if (n === wrap) return;
+    if (n.matches && (n.matches(".welcome-carousel, .trending-section, section.section"))) wrap.appendChild(n);
+  });
+
+  var TRIGGER = 80, HOLD = 96, MAX = 150;
+  var startY = 0, startX = 0, dist = 0, tracking = false, locked = "", busy = false;
+
+  function setDist(d, snap) {
+    dist = d;
+    wrap.classList.toggle("snap", !!snap);
+    wrap.style.transform = d ? "translateY(" + d + "px)" : "";
+    head.style.opacity = d ? Math.min(1, d / 50) : 0;
+    head.style.setProperty("--ptr-rot", (d * 3.2) + "deg");
+  }
+  head.style.opacity = 0;
+
+  function overlayOpen() {
+    return !!document.getElementById("bodegsSplash") || !!document.querySelector(".age-sheet, [data-modal-open]");
+  }
+
+  document.addEventListener("touchstart", function (e) {
+    if (busy || e.touches.length !== 1 || window.scrollY > 0 || overlayOpen()) { tracking = false; return; }
+    startY = e.touches[0].clientY; startX = e.touches[0].clientX;
+    tracking = true; locked = "";
+    wrap.classList.remove("snap");
+  }, { passive: true });
+
+  document.addEventListener("touchmove", function (e) {
+    if (!tracking || busy) return;
+    var dy = e.touches[0].clientY - startY, dx = e.touches[0].clientX - startX;
+    if (!locked) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      locked = (Math.abs(dy) > Math.abs(dx) && dy > 0 && window.scrollY <= 0) ? "v" : "no";
+    }
+    if (locked !== "v") { tracking = false; return; }
+    if (e.cancelable) e.preventDefault();
+    setDist(Math.min(MAX, dy * 0.5), false);
+  }, { passive: false });
+
+  function end() {
+    if (!tracking) return;
+    tracking = false;
+    if (locked !== "v") return;
+    if (dist >= TRIGGER) {
+      busy = true;
+      setDist(HOLD, true);
+      head.classList.add("spin");
+      setTimeout(function () { location.reload(); }, 1100);
+    } else {
+      setDist(0, true);
+    }
+  }
+  document.addEventListener("touchend", end, { passive: true });
+  document.addEventListener("touchcancel", end, { passive: true });
+})();
+</script>
 <script src="nav.js?v=4"></script>
 </body>
 </html>
