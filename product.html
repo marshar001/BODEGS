@@ -98,6 +98,13 @@
     .pp-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; display: flex; gap: 10px; padding: 10px max(14px, calc(50% - 306px)) calc(10px + env(safe-area-inset-bottom)); background: rgba(245,240,231,.96); border-top: 1px solid rgba(23,59,50,.1); backdrop-filter: blur(6px); }
     .pp-bar button { flex: 1; height: 50px; border-radius: 16px; font: 700 15px Arial, sans-serif; cursor: pointer; margin: 0; }
     .pp-bar .cart-button { background: var(--deep-green); color: #fff; border: 0; }
+    /* cart shortcut now lives beside "Add to Cart" */
+    .pp-bar .product-cart-button { position: relative !important; top: auto !important; right: auto !important; left: auto !important; bottom: auto !important; flex: none; width: 50px; height: 50px; margin: 0; padding: 0; border-radius: 16px; background: #fff; border: 1.5px solid rgba(23,59,50,.16); color: #111; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: none; }
+    .pp-bar .product-cart-button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .pp-bar .product-cart-button:active { transform: scale(.95); }
+    .pp-bar .product-cart-count { position: absolute !important; top: -7px !important; right: -7px !important; left: auto !important; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; background: var(--deep-green); color: #fff; font: 700 11px/20px Arial, sans-serif; text-align: center; }
+    .pp-bar .product-cart-count[hidden] { display: none !important; }
+    [data-theme=dark] .pp-bar { background: #1b1b1b !important; border-top-color: rgba(255,255,255,.1) !important; }
     .pp-bar button:disabled { opacity: .45; cursor: default; }
 
     /* colour + size: flat on the page (no card), compact like a marketplace */
@@ -159,14 +166,6 @@
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 5L8 12L15 19"></path>
         </svg>
-      </a>
-
-      <a href="cart.html" class="product-cart-button" aria-label="Cart">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M5 8h14l-1 12H6L5 8Z"></path>
-          <path d="M9 8V6a3 3 0 0 1 6 0v2"></path>
-        </svg>
-        <span id="productCartCount" class="product-cart-count" hidden>0</span>
       </a>
 
       <div class="main-product-image">
@@ -250,6 +249,13 @@
   <!-- ===== STICKY ACTION BAR ===== -->
   <div class="pp-bar" id="actionBar" hidden>
     <button id="addToCartButton" class="cart-button" type="button">Add to Cart</button>
+    <a href="cart.html" class="product-cart-button" aria-label="Cart">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 8h14l-1 12H6L5 8Z"></path>
+        <path d="M9 8V6a3 3 0 0 1 6 0v2"></path>
+      </svg>
+      <span id="productCartCount" class="product-cart-count" hidden>0</span>
+    </a>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
