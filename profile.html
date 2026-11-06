@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="dark.js?v=1"></script>
   <script>
   // BODEGS login guard: uses the real Supabase session instead of the old fake login.
   (function () {
@@ -366,6 +367,13 @@
       text-decoration: none;
     }
 
+    .ap-list { display: grid; gap: 10px; }
+    .ap-opt { position: relative; display: block; width: 100%; text-align: left; padding: 14px 44px 14px 16px; border: 1.5px solid rgba(23,59,50,.14); border-radius: 14px; background: var(--cream-light); color: var(--text); font: inherit; cursor: pointer; }
+    .ap-opt strong { display: block; font-size: 15px; }
+    .ap-opt small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+    .ap-dot { position: absolute; right: 16px; top: 50%; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%; border: 2px solid var(--muted); }
+    .ap-opt.on { border-color: var(--deep-green); }
+    .ap-opt.on .ap-dot { border-color: var(--deep-green); background: radial-gradient(var(--deep-green) 0 45%, transparent 50%); }
     /* Bottom sheet */
     .sheet-backdrop {
       position: fixed;
@@ -791,6 +799,7 @@
         phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A15 15 0 0 1 4 5a1 1 0 0 1 1-1Z"/>',
         chat: '<path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/>',
         mail: '<rect x="4" y="6" width="16" height="12" rx="2"/><path d="m5 8 7 5 7-5"/>',
+        moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/>',
         chevron: '<path d="m9 6 6 6-6 6"/>'
       };
 
@@ -1127,6 +1136,22 @@
         });
       }
 
+      function appearanceSheet() {
+        openSheet("Appearance", function (body) {
+          const cur = (window.BODEGSTheme && window.BODEGSTheme.get()) || "auto";
+          const list = el("div", { class: "ap-list" });
+          [["auto", "Auto", "Matches your phone's setting"], ["light", "Light", "Always light"], ["dark", "Dark", "Always dark"]].forEach(function (o) {
+            const b = el("button", { type: "button", class: "ap-opt" + (cur === o[0] ? " on" : "") });
+            b.innerHTML = "<strong></strong><small></small><span class='ap-dot'></span>";
+            b.querySelector("strong").textContent = o[1];
+            b.querySelector("small").textContent = o[2];
+            b.addEventListener("click", function () { if (window.BODEGSTheme) window.BODEGSTheme.set(o[0]); });
+            list.appendChild(b);
+          });
+          body.appendChild(list);
+        });
+      }
+
       /* Log out of the real BODEGS account (Supabase), clear this device's copy, then go to Home. */
       async function endSession() {
         try { if (typeof sb !== "undefined") { await sb.auth.signOut(); } } catch (error) {}
@@ -1160,6 +1185,7 @@
         { icon: "user", title: "Edit Profile", action: editProfileSheet },
         { icon: "pin", title: "Delivery Address List", sub: "Manage delivery addresses", action: addressesSheet },
         { icon: "shield", title: "Verification status", sub: "Check your account details", action: verificationSheet },
+        { icon: "moon", title: "Appearance", sub: "Light, Dark or Auto", action: appearanceSheet },
         { icon: "orders", title: "Order History", sub: "See and track your orders", href: "orders.html" },
         { icon: "help", title: "FAQs", sub: "Read answers to frequently asked questions", action: faqSheet },
         { icon: "play", title: "How BODEGS works", sub: "A quick guide to buying on BODEGS", action: howItWorksSheet },
