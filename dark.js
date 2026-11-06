@@ -147,7 +147,7 @@
       return CHIP;
     }
     if (o.l >= .3) return hsl(o.h, o.s * .55, clamp(o.l, .34, .46), 1);
-    if (tag === "NAV") return CARD;
+    if (tag === "NAV") return "#1f3a33";                          /* bottom bar: muted brand green, clearly different from the cards */
     if (big) return CARD;                                           /* big dark bar (header): a raised surface */
     if (o.s < .1) return "#3d3d3d";                                 /* black button -> soft grey button */
     return hsl(o.h, o.s * .5, .33, 1);                              /* green button -> muted accent */
