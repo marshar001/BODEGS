@@ -46,27 +46,33 @@
     if (!p) return;
     cur = p.el; sx = e.clientX; sy = e.clientY;
     clearTimeout(holdTimer);
-    holdTimer = setTimeout(function () { if (cur) squeeze(cur, p.w); }, 35);   /* not while the page is being scrolled */
+    holdTimer = setTimeout(function () { if (cur) squeeze(cur, p.w); }, 200);   /* only a real press-and-hold squeezes early; a scroll never does */
   }, { passive: true });
 
   document.addEventListener("pointermove", function (e) {
     if (!cur) return;
     if (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) {
-      clearTimeout(holdTimer); release(cur); cur = null;
+      clearTimeout(holdTimer);
+      if (cur.__pressed) release(cur);        /* only springs back if it had already been squeezed */
+      cur = null;
     }
   }, { passive: true });
 
-  function up() {
+  /* finger lifted without scrolling = a tap: squeeze, then pop */
+  document.addEventListener("pointerup", function () {
     clearTimeout(holdTimer);
-    if (cur) {
-      if (!cur.__pressed) squeeze(cur, cur.getBoundingClientRect().width);   /* very quick tap: still show it */
-      var el = cur;
-      setTimeout(function () { release(el); }, 30);
-    }
+    if (!cur) return;
+    var el = cur; cur = null;
+    if (!el.__pressed) squeeze(el, el.getBoundingClientRect().width);
+    setTimeout(function () { release(el); }, 90);
+  }, { passive: true });
+
+  /* the browser took over (scrolling): do nothing, no bounce */
+  document.addEventListener("pointercancel", function () {
+    clearTimeout(holdTimer);
+    if (cur && cur.__pressed) { cur.style.transition = "transform .18s ease-out"; cur.style.transform = ""; cur.__pressed = 0; }
     cur = null;
-  }
-  document.addEventListener("pointerup", up, { passive: true });
-  document.addEventListener("pointercancel", up, { passive: true });
+  }, { passive: true });
 
   /* let the pop play before a link opens the next page */
   document.addEventListener("click", function (e) {
@@ -78,7 +84,7 @@
     if (a.closest(SKIP)) return;
     e.preventDefault();
     var url = a.href;
-    setTimeout(function () { window.location.href = url; }, 190);
+    setTimeout(function () { window.location.href = url; }, 230);
   });
 
   /* coming back with the Back button: make sure nothing is left squeezed */
