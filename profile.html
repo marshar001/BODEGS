@@ -970,8 +970,15 @@
         ).toUpperCase();
       }
 
+      /* The signed-in details are already stored on this phone, so the saved photo can show at once. */
+      const KEY_AVATAR_URL = "weraeAvatarUrl:" + WHO;
       let remoteAvatar = null;
       let preferLocal = false;
+      try {
+        const stored = JSON.parse(localStorage.getItem("sb-cdwstvsesiyvfcadyqzs-auth-token") || "null");
+        const m = stored && stored.user && stored.user.user_metadata;
+        remoteAvatar = (m && m.avatar_url) || read(KEY_AVATAR_URL, null);
+      } catch (error) { remoteAvatar = read(KEY_AVATAR_URL, null); }
 
       function renderProfile() {
         const avatar = document.getElementById("avatar");
@@ -981,6 +988,10 @@
 
         if (photo) {
           const image = el("img", { src: photo, alt: "Your profile photo" });
+          image.addEventListener("error", function () {
+            const back = read(KEY_AVATAR, null);
+            if (back && image.src !== back) { image.src = back; } else { avatar.textContent = initials(user.name); }
+          });
           avatar.appendChild(image);
         } else {
           avatar.textContent = initials(user.name);
@@ -1018,6 +1029,7 @@
           const meta = await sb.auth.updateUser({ data: { avatar_url: url } });
           if (meta.error) throw meta.error;
           remoteAvatar = url;
+          write(KEY_AVATAR_URL, url);
           preferLocal = false;
           toast("Profile photo updated");
         } catch (error) {
@@ -1031,6 +1043,7 @@
           const meta = got && got.data && got.data.user && got.data.user.user_metadata;
           if (meta && meta.avatar_url && !preferLocal) {
             remoteAvatar = meta.avatar_url;
+            write(KEY_AVATAR_URL, meta.avatar_url);
             renderProfile();
           }
         } catch (error) {}
@@ -1279,6 +1292,7 @@
         remove(KEY_USER);
         remove(KEY_ADDRESSES);
         remove(KEY_AVATAR);
+        remove(KEY_AVATAR_URL);
         remove("weraeRememberedEmail");
         window.location.href = "index.html";
                                    }
@@ -1334,6 +1348,7 @@
         remove(KEY_USER);
         remove(KEY_ADDRESSES);
         remove(KEY_AVATAR);
+        remove(KEY_AVATAR_URL);
         remove("weraeRememberedEmail");
         window.location.href = "index.html";
       }
