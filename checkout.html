@@ -111,13 +111,14 @@
       class="checkout-place-order"
       id="placeDemoOrder"
     >
-      Place Demo Order
+      Pay now
     </button>
 
     <p id="checkoutMessage" role="status" aria-live="polite"></p>
 
   </main>
 
+<script src="https://js.paystack.co/v2/inline.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script>
@@ -256,6 +257,10 @@
     const checkoutMessage =
       document.getElementById("checkoutMessage");
 
+    // Paystack TEST public key. It is safe to show; the secret key never goes in this page.
+    const PAYSTACK_PUBLIC_KEY = "pk_test_7931850570204e5adeff382152b45f7f0077cf8e";
+    let pendingOrder = null;
+
     placeDemoOrderButton.addEventListener("click", async () => {
       const name =
         document.getElementById("checkoutName").value.trim();
@@ -295,50 +300,97 @@
       }
 
       placeDemoOrderButton.disabled = true;
-      checkoutMessage.textContent = "Placing your order...";
 
-      const { error } = await sb.rpc("place_order", {
-        p_items: items,
-        p_name: name,
-        p_phone: phone,
-        p_address: address,
-        p_city: city
-      });
-
-      if (error) {
-        const reason = String(error.message || "");
-        let text = "We couldn't place your order. Please try again.";
-
-        if (reason.includes("not signed in")) {
-          window.location.href = "login.html?next=checkout.html";
-          return;
-        }
-        if (reason.includes("product not available")) {
-          text = "One of the items in your cart is no longer available. Please remove it and try again.";
-        } else if (reason.includes("not enough stock")) {
-          text = "Sorry, one of the items in your cart is out of stock.";
-        }
-
-        checkoutMessage.textContent = text;
-        placeDemoOrderButton.disabled = false;
-        return;
-      }
-
-      // Record the chosen size and colour on the saved order (best effort:
-      // the order itself is already saved even if this step fails).
       try {
-        await sb.rpc("tag_latest_order_items", {
-          p_items: cartProducts.map(product => ({
-            productId: String(product.productId || product.id || ""),
-            size: String(product.size || ""),
-            color: String(product.color || "")
-          }))
-        });
-      } catch (e) { /* ignore */ }
+        // The order is saved once. If the person closes the payment window and
+        // tries again, the same order is paid instead of creating a new one.
+        const signature = JSON.stringify(items) + name + phone + address + city;
+        if (!pendingOrder || pendingOrder.signature !== signature) {
+          checkoutMessage.textContent = "Placing your order...";
 
-      // Clear the cart only after the order has been saved.
-      localStorage.removeItem("weraeCart");
-      window.location.href = "orders.html";
+          const { data: orderId, error } = await sb.rpc("place_order", {
+            p_items: items,
+            p_name: name,
+            p_phone: phone,
+            p_address: address,
+            p_city: city
+          });
+
+          if (error) {
+            const reason = String(error.message || "");
+            let text = "We couldn't place your order. Please try again.";
+
+            if (reason.includes("not signed in")) {
+              window.location.href = "login.html?next=checkout.html";
+              return;
+            }
+            if (reason.includes("product not available")) {
+              text = "One of the items in your cart is no longer available. Please remove it and try again.";
+            } else if (reason.includes("not enough stock")) {
+              text = "Sorry, one of the items in your cart is out of stock.";
+            }
+
+            checkoutMessage.textContent = text;
+            placeDemoOrderButton.disabled = false;
+            return;
+          }
+
+          pendingOrder = { id: orderId, signature: signature };
+
+          // Record the chosen size and colour on the saved order (best effort).
+          try {
+            await sb.rpc("tag_latest_order_items", {
+              p_items: cartProducts.map(product => ({
+                productId: String(product.productId || product.id || ""),
+                size: String(product.size || ""),
+                color: String(product.color || "")
+              }))
+            });
+          } catch (e) { /* ignore */ }
+        }
+
+        // The amount always comes from the saved order, never from this phone.
+        const found = await sb.from("orders").select("total").eq("id", pendingOrder.id).single();
+        const session = await sb.auth.getSession();
+        const email = session && session.data && session.data.session && session.data.session.user.email;
+        if (found.error || !found.data || !email) throw new Error("order lookup failed");
+
+        const reference = "BDG-" + String(pendingOrder.id).replace(/-/g, "").slice(0, 20) + "-" + Date.now();
+        checkoutMessage.textContent = "Opening payment...";
+
+        new PaystackPop().newTransaction({
+          key: PAYSTACK_PUBLIC_KEY,
+          email: email,
+          amount: Math.round(Number(found.data.total) * 100),
+          currency: "NGN",
+          ref: reference,
+          metadata: { order_id: pendingOrder.id },
+          onSuccess: async function () {
+            checkoutMessage.textContent = "Confirming your payment...";
+            let paid = false;
+            try {
+              const res = await sb.functions.invoke("verify-payment", {
+                body: { reference: reference, order_id: pendingOrder.id }
+              });
+              paid = !!(res.data && res.data.paid);
+            } catch (e) { /* handled below */ }
+
+            // The order is saved, so the cart is cleared either way.
+            localStorage.removeItem("weraeCart");
+            if (!paid) {
+              alert("We received your payment and are confirming it. Please check My Orders in a few minutes.");
+            }
+            window.location.href = "orders.html";
+          },
+          onCancel: function () {
+            checkoutMessage.textContent = "Payment cancelled. Tap Pay now when you are ready.";
+            placeDemoOrderButton.disabled = false;
+          }
+        });
+      } catch (e) {
+        checkoutMessage.textContent = "We couldn't start the payment. Please try again.";
+        placeDemoOrderButton.disabled = false;
+      }
     });
   
   </script>
