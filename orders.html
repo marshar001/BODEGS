@@ -704,6 +704,80 @@
     [data-theme="dark"] .od-banner.cancelled { background: #3b2523 !important; color: #e19b93 !important; }
     [data-theme="dark"] .od-event.latest::before { background: #7fbf9f !important; }
 
+    .od-cancel {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 13px;
+      border: 1px solid rgba(168, 55, 47, 0.45);
+      border-radius: 14px;
+      background: transparent;
+      color: #a8372f;
+      font: inherit;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .od-confirm {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.55);
+    }
+
+    .od-confirm-box {
+      width: 100%;
+      max-width: 340px;
+      padding: 22px;
+      border-radius: 22px;
+      background: var(--cream-light);
+      text-align: center;
+    }
+
+    .od-confirm-box h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .od-confirm-box p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .od-confirm-box .od-fee {
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #f5e5bd;
+      color: #5e430f;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .od-confirm-box button {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 13px;
+      border: 0;
+      border-radius: 14px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .od-confirm-box .od-keep { background: #173b32; color: #fff; }
+    .od-confirm-box .od-do { background: #a8372f; color: #fff; }
+
     .od-close {
       display: block;
       width: 100%;
@@ -1204,7 +1278,14 @@
           <div class="od-row"><span>Status</span><span>${order.paid ? "Paid" : cancelled ? "Not paid" : "Awaiting payment"}</span></div>
           <div class="od-row"><span>Total</span><strong>${formatMoney(order.total)}</strong></div>
         </div>
+        ${cancelled && order.refundAmount ? `
+          <div class="od-section">
+            <h3>REFUND</h3>
+            <div class="od-row"><span>Cancellation fee (10%)</span><span>${formatMoney(order.cancelFee)}</span></div>
+            <div class="od-row"><span>Refunded to you</span><strong>${formatMoney(order.refundAmount)}</strong></div>
+          </div>` : ""}
         ${(!order.paid && !cancelled) ? `<button type="button" class="od-close" data-pay="${escapeHTML(order.rawId)}">Pay now</button>` : ""}
+        ${(!cancelled && !shipped && !delivered) ? `<button type="button" class="od-cancel" data-cancel="${escapeHTML(order.rawId)}">Cancel order</button>` : ""}
         <button type="button" class="od-close" id="odClose" style="background:transparent;color:inherit;border:1px solid rgba(23,59,50,.25);margin-top:10px">Close</button>
       `;
 
@@ -1233,6 +1314,68 @@
       if (!button) return;
       const order = loadedOrders.find(o => String(o.rawId) === button.getAttribute("data-details"));
       if (order) showOrderDetails(order);
+    });
+
+
+    /* ---------- cancel an order ---------- */
+    function askCancel(order) {
+      const total = Number(order.total) || 0;
+      const fee = Math.round(total * 10) / 100;
+      const refund = Math.round((total - fee) * 100) / 100;
+
+      const wrap = document.createElement("div");
+      wrap.className = "od-confirm";
+      wrap.innerHTML = `
+        <div class="od-confirm-box dk-skip" role="alertdialog" aria-modal="true">
+          <h3>Cancel this order?</h3>
+          ${order.paid
+            ? `<div class="od-fee"><strong>10% cancellation fee: ${formatMoney(fee)}</strong><br>
+                 This covers payment processing charges and discourages cancelling after paying.
+                 You will be refunded <strong>${formatMoney(refund)}</strong> to your original payment method.
+                 Refunds can take a few business days.</div>`
+            : `<p>You have not paid for this order yet, so there is no charge.</p>`}
+          <button type="button" class="od-keep">Keep my order</button>
+          <button type="button" class="od-do">${order.paid ? "Cancel and accept 10% fee" : "Cancel order"}</button>
+        </div>`;
+      document.body.appendChild(wrap);
+
+      const box = wrap.firstElementChild;
+      box.style.background = getComputedStyle(odSheet).backgroundColor;
+      box.style.color = getComputedStyle(odSheet).color;
+
+      wrap.querySelector(".od-keep").onclick = () => wrap.remove();
+      wrap.addEventListener("click", e => { if (e.target === wrap) wrap.remove(); });
+      wrap.querySelector(".od-do").onclick = async function () {
+        const go = this;
+        go.disabled = true;
+        go.textContent = "Cancelling...";
+        let message = "";
+        try {
+          const res = await sb.functions.invoke("cancel-order", { body: { order_id: order.rawId } });
+          if (res.error) {
+            let detail = {};
+            try { detail = await res.error.context.json(); } catch (e) {}
+            if (detail.error === "no reference") message = "This order can't be cancelled online. Please contact BODEGS support.";
+            else if (detail.error === "refund failed") message = "We couldn't process the refund, so your order was not cancelled. Please try again.";
+            else if (detail.error === "cannot cancel") message = "This order can no longer be cancelled.";
+            else message = "We couldn't cancel the order. Please try again.";
+          } else if (!(res.data && res.data.cancelled)) {
+            message = "We couldn't cancel the order. Please try again.";
+          }
+        } catch (e) { message = "We couldn't cancel the order. Please try again."; }
+
+        wrap.remove();
+        if (message) { alert(message); return; }
+        hideOrderDetails(false);
+        if (loadMyOrdersAgain) loadMyOrdersAgain();
+      };
+    }
+
+    document.addEventListener("click", function (event) {
+      const button = event.target.closest("[data-cancel]");
+      if (!button) return;
+      const order = loadedOrders.find(o => String(o.rawId) === button.getAttribute("data-cancel"));
+      if (order) askCancel(order);
     });
 
     // Paystack TEST public key. Safe to show; the secret key never goes in this page.
@@ -1293,7 +1436,7 @@
       const { data, error } = await sb
         .from("orders")
         .select(
-          "id, status, payment_status, total, created_at, customer_name, phone, delivery_address, city, " +
+          "id, status, payment_status, total, created_at, customer_name, phone, delivery_address, city, cancel_fee, refund_amount, " +
           "order_items(qty, price_at_purchase, product_name, product_image, size, color, shipped_at)"
         )
         .eq("user_id", user.id)
@@ -1317,6 +1460,8 @@
         phone: order.phone,
         address: order.delivery_address,
         city: order.city,
+        cancelFee: order.cancel_fee,
+        refundAmount: order.refund_amount,
         products: (order.order_items || []).map(item => ({
           name: item.product_name,
           image: item.product_image,
