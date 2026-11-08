@@ -17,6 +17,23 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.css?v=20261031">
   <script src="theme.js?v=20261031" defer></script>
+  <style>
+    .saved-addrs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .saved-addrs[hidden] { display: none; }
+    .saved-addrs button {
+      border: 1px solid rgba(23, 59, 50, 0.3);
+      border-radius: 18px;
+      padding: 8px 14px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .saved-addrs button.active { background: #173b32; border-color: #173b32; color: #fff; }
+    .save-addr-row { display: flex !important; flex-direction: row !important; align-items: center; gap: 10px; margin-top: 4px; font-size: 14px; }
+    .save-addr-row input { width: 18px !important; height: 18px; flex: none; margin: 0; padding: 0; }
+  </style>
 </head>
 
 <body>
@@ -38,6 +55,8 @@
 
     <section class="checkout-section">
       <h2>Delivery Information</h2>
+
+      <div id="savedAddrs" class="saved-addrs" hidden></div>
 
       <label>
         Full Name
@@ -73,6 +92,11 @@
           id="checkoutCity"
           placeholder="Enter your city"
         >
+      </label>
+
+      <label class="save-addr-row">
+        <input type="checkbox" id="saveAddress" checked>
+        <span>Save this address for next time</span>
       </label>
     </section>
 
@@ -133,15 +157,100 @@
       })[char]);
     }
 
-    // Must be signed in (real BODEGS login). Pre-fill the name if we know it.
+    // Must be signed in (real BODEGS login). Fill in the delivery details we already know,
+    // so a returning customer does not type them again.
+    let addrWho = "guest";
+
+    function readList(key) {
+      try { const v = JSON.parse(localStorage.getItem(key) || "[]"); return Array.isArray(v) ? v : []; }
+      catch (e) { return []; }
+    }
+
+    function fillDelivery(d) {
+      if (!d) return;
+      const set = (id, value) => {
+        const box = document.getElementById(id);
+        if (box && value) box.value = value;
+      };
+      set("checkoutName", d.name);
+      set("checkoutPhone", d.phone);
+      set("checkoutAddress", d.address || d.line);
+      set("checkoutCity", d.city);
+    }
+
+    function drawSavedAddresses(list) {
+      const holder = document.getElementById("savedAddrs");
+      if (!holder || !list.length) return;
+      holder.hidden = false;
+      holder.innerHTML = "";
+
+      list.slice(0, 5).forEach(function (a, index) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = a.label || ("Address " + (index + 1));
+        b.addEventListener("click", function () {
+          holder.querySelectorAll("button").forEach(x => x.classList.remove("active"));
+          b.classList.add("active");
+          fillDelivery({ address: a.line, city: a.city });
+        });
+        holder.appendChild(b);
+      });
+
+      const fresh = document.createElement("button");
+      fresh.type = "button";
+      fresh.textContent = "+ New address";
+      fresh.addEventListener("click", function () {
+        holder.querySelectorAll("button").forEach(x => x.classList.remove("active"));
+        fresh.classList.add("active");
+        document.getElementById("checkoutAddress").value = "";
+        document.getElementById("checkoutCity").value = "";
+        document.getElementById("checkoutAddress").focus();
+      });
+      holder.appendChild(fresh);
+    }
+
     requireLogin().then(function (user) {
       if (!user) return;
       const meta = user.user_metadata || {};
+      addrWho = String(user.email || "guest").toLowerCase();
+
+      const saved = readList("weraeAddresses:" + addrWho);
+      let last = null;
+      try { last = JSON.parse(localStorage.getItem("weraeDelivery:" + addrWho) || "null"); } catch (e) {}
+      last = last || meta.bodegs_delivery || null;
+
       const nameBox = document.getElementById("checkoutName");
-      if (nameBox && !nameBox.value && meta.full_name) {
-        nameBox.value = meta.full_name;
-      }
+      if (nameBox && !nameBox.value && meta.full_name) nameBox.value = meta.full_name;
+
+      if (last) fillDelivery(last);
+      else if (saved.length) fillDelivery({ address: saved[0].line, city: saved[0].city });
+
+      drawSavedAddresses(saved);
     });
+
+    // Remember this delivery for next time (on this phone, and on the account for other devices).
+    function rememberDelivery(d) {
+      try { localStorage.setItem("weraeDelivery:" + addrWho, JSON.stringify(d)); } catch (e) {}
+      try { sb.auth.updateUser({ data: { bodegs_delivery: d } }); } catch (e) {}
+
+      const box = document.getElementById("saveAddress");
+      if (box && !box.checked) return;
+      try {
+        const key = "weraeAddresses:" + addrWho;
+        const list = readList(key);
+        const exists = list.some(a => String(a.line || "").trim().toLowerCase() === d.address.toLowerCase()
+          && String(a.city || "").trim().toLowerCase() === d.city.toLowerCase());
+        if (!exists) {
+          list.push({
+            id: String(Date.now()),
+            label: list.length ? "Address " + (list.length + 1) : "Home",
+            line: d.address,
+            city: d.city
+          });
+          localStorage.setItem(key, JSON.stringify(list));
+        }
+      } catch (e) {}
+    }
 
     const checkoutItems =
       document.getElementById("checkoutItems");
@@ -336,6 +445,7 @@
           }
 
           pendingOrder = { id: orderId, signature: signature };
+          rememberDelivery({ name: name, phone: phone, address: address, city: city });
 
           // Record the chosen size and colour on the saved order (best effort).
           try {
