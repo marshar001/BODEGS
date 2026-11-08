@@ -1019,6 +1019,21 @@
         const cartTotal = cart.reduce(function (t, i) { return t + Number((i && i.quantity) || 1); }, 0);
         document.getElementById("cartCount").textContent =
           cartTotal === 1 ? "1 item" : cartTotal + " items";
+
+        refreshOrderCount();
+      }
+
+      /* The real order count comes from your account, not from this phone. */
+      async function refreshOrderCount() {
+        try {
+          const got = await sb.auth.getUser();
+          const id = got && got.data && got.data.user && got.data.user.id;
+          if (!id) return;
+          const res = await sb.from("orders").select("id", { count: "exact", head: true }).eq("user_id", id);
+          if (res.error || typeof res.count !== "number") return;
+          document.getElementById("ordersCount").textContent =
+            res.count === 1 ? "1 order" : res.count + " orders";
+        } catch (error) { /* keep what is shown */ }
       }
 
       /* Profile photo: resized to a small square, shown at once, and saved to your account so it follows you */
