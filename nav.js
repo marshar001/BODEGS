@@ -134,13 +134,13 @@
     var date = when.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
     box.innerHTML = '<div style="font-size:18px;font-weight:700;margin-bottom:8px">Restore your account?</div>' +
       '<div style="font-size:14px;line-height:1.5;opacity:.8;margin-bottom:18px">This account is set to be deleted on ' + date + '. Restore it to keep your account.</div>';
-    function btn(text, main) {
+    function btn(text, main, red) {
       var b = document.createElement("button");
       b.type = "button"; b.textContent = text;
-      b.style.cssText = "display:block;width:100%;border:0;border-radius:14px;padding:13px;margin-top:8px;font-size:15px;font-weight:700;cursor:pointer;background:" + (main ? "#173b32" : (dark ? "#3d3d3d" : "#eee")) + ";color:" + (main ? "#fff" : (dark ? "#f2f2f2" : "#1d1d1d"));
+      b.style.cssText = "display:block;width:100%;border:0;border-radius:14px;padding:13px;margin-top:8px;font-size:15px;font-weight:700;cursor:pointer;background:" + (red ? "#a3392f" : main ? "#173b32" : (dark ? "#3d3d3d" : "#eee")) + ";color:" + ((main || red) ? "#fff" : (dark ? "#f2f2f2" : "#1d1d1d"));
       return b;
     }
-    var yes = btn("Restore account", true), no = btn("Keep it deleted", false);
+    var yes = btn("Restore account", true), no = btn("Keep it deleted", false, true);
     yes.onclick = function () {
       yes.disabled = true;
       sb.rpc("restore_my_account").then(function (r) {
