@@ -1015,8 +1015,9 @@
         document.getElementById("ordersCount").textContent =
           orders.length === 1 ? "1 order" : orders.length + " orders";
 
+        const cartTotal = cart.reduce(function (t, i) { return t + Number((i && i.quantity) || 1); }, 0);
         document.getElementById("cartCount").textContent =
-          cart.length === 1 ? "1 item" : cart.length + " items";
+          cartTotal === 1 ? "1 item" : cartTotal + " items";
       }
 
       /* Profile photo: resized to a small square, shown at once, and saved to your account so it follows you */
@@ -1590,6 +1591,6 @@
     })();
   </script>
 
-  <script src="nav.js?v=5"></script>
+  <script src="nav.js?v=6"></script>
 </body>
 </html>

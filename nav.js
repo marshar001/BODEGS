@@ -111,7 +111,7 @@
       sb.auth.getSession().then(function (r) {
         var u = r && r.data && r.data.session && r.data.session.user;
         if (!u) return;
-        var key = "bodegsDelOk:" + u.id;
+        var key = "bodegsDelOk:" + u.id + ":" + (u.last_sign_in_at || "");
         try { if (sessionStorage.getItem(key)) return; } catch (e) {}
         sb.rpc("my_deletion_status").then(function (res) {
           if (res.error) return;
