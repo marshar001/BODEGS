@@ -28,8 +28,10 @@
     .terms-box { display:flex !important; flex-direction:row !important; align-items:flex-start; gap:12px; border:1px solid rgba(23,59,50,.25); border-radius:12px; padding:14px 16px; margin:0 0 14px; font-size:14px; line-height:1.45; }
     .terms-box input { width:20px !important; height:20px; flex:none; margin:1px 0 0; padding:0; accent-color:#173b32; }
     .terms-box a { color:inherit; font-weight:700; text-decoration:underline; }
-    #placeDemoOrder:disabled { background:#c8c8c8 !important; color:#fff !important; border-color:#c8c8c8 !important; cursor:not-allowed; opacity:1; }
-    [data-theme="dark"] #placeDemoOrder:disabled { background:#4a4a4a !important; color:#999 !important; border-color:#4a4a4a !important; }
+    #placeDemoOrder { display:block; width:100%; box-sizing:border-box; border:0; border-radius:14px; padding:16px; font:inherit; font-size:16px; font-weight:700; cursor:pointer; background:#173b32 !important; color:#fff !important; }
+    #placeDemoOrder:disabled { background:#d3d3d0 !important; color:#8c8c88 !important; cursor:not-allowed; opacity:1; }
+    [data-theme="dark"] #placeDemoOrder { background:#2f6a58 !important; color:#fff !important; }
+    [data-theme="dark"] #placeDemoOrder:disabled { background:#3a3a3a !important; color:#8a8a8a !important; }
     #payHint { font-size:13px; text-align:center; opacity:.7; margin:8px 0 0; min-height:1em; }
     .ad-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:900; display:flex; align-items:flex-end; justify-content:center; }
     .ad-backdrop[hidden] { display:none; }
@@ -55,17 +57,12 @@
 
 <body>
 
-  <main class="checkout-page">
+  <main class="checkout-page" style="padding-top:28px">
 
     
-<a href="cart.html" class="back-button" aria-label="Return to cart">
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M15 5L8 12L15 19"></path>
-  </svg>
-</a>
+
 
     <header class="checkout-header">
-      <p class="verified-badge">BODEGS CHECKOUT</p>
       <h1>Checkout</h1>
       <p>Confirm your delivery address to continue.</p>
     </header>
@@ -117,7 +114,7 @@
     <button
       type="button"
       disabled
-      class="checkout-place-order"
+      class="checkout-place-order dk-skip"
       id="placeDemoOrder"
     >
       Pay now
