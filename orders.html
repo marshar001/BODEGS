@@ -148,6 +148,11 @@
       cursor: pointer;
     }
 
+    .order-status.paid {
+      background: #d9ecdf;
+      color: #1f5b34;
+    }
+
     .order-status.cancelled {
       background: #f3d8d5;
       color: #873b32;
@@ -491,6 +496,16 @@
       return "pending";
     }
 
+    // One label per order: unpaid orders stay "pending"; once paid, a new order
+    // reads "Paid" and moves on to processing/shipped/delivered as the seller updates it.
+    function orderStage(order) {
+      const base = normaliseStatus(order.status);
+      if (base === "cancelled") return { key: "cancelled", label: "Cancelled" };
+      if (!order.paid) return { key: "pending", label: "Pending" };
+      if (base === "pending") return { key: "processing", label: "Paid", css: "paid" };
+      return { key: base, label: base.charAt(0).toUpperCase() + base.slice(1) };
+    }
+
     function formatDate(value) {
       if (!value) return "Date unavailable";
 
@@ -565,7 +580,7 @@
       const filteredOrders = currentFilter === "all"
         ? allOrders
         : allOrders.filter(order =>
-            normaliseStatus(order.status) === currentFilter
+            orderStage(order).key === currentFilter
           );
 
       if (allOrders.length === 0) {
@@ -589,7 +604,8 @@
             ? order.items
             : [];
 
-        const status = normaliseStatus(order.status);
+        const stage = orderStage(order);
+        const status = stage.key;
 
         const orderId = order.id ||
           order.orderId ||
@@ -645,12 +661,9 @@
                 </div>
               </div>
 
-              <div>
-                <span class="order-status ${status}">
-                  ${status.charAt(0).toUpperCase() + status.slice(1)}
-                </span>
-                ${status === "cancelled" ? "" : `<span class="order-pay-badge ${order.paid ? "paid" : "unpaid"}">${order.paid ? "Paid" : "Awaiting payment"}</span>`}
-              </div>
+              <span class="order-status ${stage.css || status}">
+                ${stage.label}
+              </span>
             </div>
 
             <div class="order-products">
