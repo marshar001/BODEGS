@@ -814,10 +814,11 @@
          ============================================== */
       const SUPPORT = {
         phone: "",
-        whatsapp: "",
-        email: "",
+        whatsapp: "2348107771903",
+        email: "bodegs.ng@gmail.com",
         instagram: "",
-        facebook: ""
+        facebook: "",
+        tiktok: "https://www.tiktok.com/@bodegs8"
       };
 
       const KEY_USER = "weraeUser";
@@ -1568,7 +1569,7 @@
         if (SUPPORT.whatsapp) supportLink("chat", "Chat on WhatsApp", "https://wa.me/" + SUPPORT.whatsapp.replace(/\D/g, ""));
         if (SUPPORT.email) supportLink("mail", "Email us", "mailto:" + SUPPORT.email);
 
-        [["instagram", "Instagram"], ["facebook", "Facebook"]].forEach(function (pair) {
+        [["instagram", "Instagram"], ["facebook", "Facebook"], ["tiktok", "TikTok"]].forEach(function (pair) {
           if (SUPPORT[pair[0]]) {
             social.appendChild(
               el("a", { href: SUPPORT[pair[0]], target: "_blank", rel: "noopener", text: pair[1] })
@@ -1591,6 +1592,6 @@
     })();
   </script>
 
-  <script src="nav.js?v=6"></script>
+  <script src="nav.js?v=7"></script>
 </body>
 </html>
