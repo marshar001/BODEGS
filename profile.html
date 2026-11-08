@@ -977,7 +977,10 @@
       try {
         const stored = JSON.parse(localStorage.getItem("sb-cdwstvsesiyvfcadyqzs-auth-token") || "null");
         const m = stored && stored.user && stored.user.user_metadata;
-        remoteAvatar = (m && m.avatar_url) || read(KEY_AVATAR_URL, null);
+        const uid = stored && stored.user && stored.user.id;
+        /* Google sign-in rewrites "avatar_url" every time, so the photo is kept under its own name, and the file's fixed address is the backup. */
+        remoteAvatar = (m && m.bodegs_photo) || read(KEY_AVATAR_URL, null) ||
+          (uid ? "https://cdwstvsesiyvfcadyqzs.supabase.co/storage/v1/object/public/avatars/" + uid + "/avatar.jpg" : null);
       } catch (error) { remoteAvatar = read(KEY_AVATAR_URL, null); }
 
       function renderProfile() {
@@ -1026,14 +1029,14 @@
           const up = await sb.storage.from("avatars").upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "3600" });
           if (up.error) throw up.error;
           const url = sb.storage.from("avatars").getPublicUrl(path).data.publicUrl + "?v=" + Date.now();
-          const meta = await sb.auth.updateUser({ data: { avatar_url: url } });
+          const meta = await sb.auth.updateUser({ data: { bodegs_photo: url } });
           if (meta.error) throw meta.error;
           remoteAvatar = url;
           write(KEY_AVATAR_URL, url);
           preferLocal = false;
           toast("Profile photo updated");
         } catch (error) {
-          toast("Photo saved on this phone only");
+          toast("Photo saved on this phone only" + (error && error.message ? " (" + error.message + ")" : ""));
         }
       }
 
@@ -1041,9 +1044,9 @@
         try {
           const got = await sb.auth.getUser();
           const meta = got && got.data && got.data.user && got.data.user.user_metadata;
-          if (meta && meta.avatar_url && !preferLocal) {
-            remoteAvatar = meta.avatar_url;
-            write(KEY_AVATAR_URL, meta.avatar_url);
+          if (meta && meta.bodegs_photo && !preferLocal) {
+            remoteAvatar = meta.bodegs_photo;
+            write(KEY_AVATAR_URL, meta.bodegs_photo);
             renderProfile();
           }
         } catch (error) {}
