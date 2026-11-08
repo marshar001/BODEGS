@@ -427,6 +427,17 @@
       font-size: 12px;
     }
 
+    .order-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    button.order-action.ghost {
+      background: transparent;
+      border: 1px solid rgba(168, 55, 47, 0.5);
+      color: #a8372f;
+    }
+
     .order-card.is-cancelled {
       opacity: 0.6;
     }
@@ -1166,7 +1177,10 @@
               </div>
 
               ${(!order.paid && status !== "cancelled")
-                ? `<button type="button" class="order-action" data-pay="${escapeHTML(order.rawId)}">Pay now</button>`
+                ? `<div class="order-btns">
+                    <button type="button" class="order-action ghost" data-cancel="${escapeHTML(order.rawId)}">Cancel</button>
+                    <button type="button" class="order-action" data-pay="${escapeHTML(order.rawId)}">Pay now</button>
+                  </div>`
                 : `<button type="button" class="order-action" data-details="${escapeHTML(order.rawId)}">Order details</button>`}
             </div>
           </article>
