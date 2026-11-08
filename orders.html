@@ -323,7 +323,7 @@
       top: 0;
       z-index: 20;
       margin: 0 -16px;
-      padding: 52px 16px 0; /* leaves room for the back arrow above the title */
+      padding: 14px 16px 0;
     }
 
     .orders-top .orders-header {
@@ -623,6 +623,87 @@
       border-color: rgba(255, 255, 255, 0.3);
     }
 
+
+    .od-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .od-banner.good { background: #d9ecdf; color: #1f5b34; }
+    .od-banner.wait { background: #f5e5bd; color: #795516; }
+    .od-banner.cancelled { background: #f3d8d5; color: #873b32; }
+
+    .od-banner-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .od-updates {
+      border-top: 0;
+      margin-top: 14px;
+      padding-top: 0;
+    }
+
+    .od-event {
+      position: relative;
+      padding: 0 0 12px 20px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .od-event::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 4px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #b9bdb9;
+    }
+
+    .od-event::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 16px;
+      bottom: -2px;
+      width: 1px;
+      background: rgba(23, 59, 50, 0.18);
+    }
+
+    .od-event:last-child::after { display: none; }
+    .od-event.latest::before { background: #2f8f5b; }
+
+    .od-event small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .od-event strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .od-event span {
+      color: var(--muted);
+    }
+
+    [data-theme="dark"] .od-banner.good { background: #1f3a2b !important; color: #8fd1a9 !important; }
+    [data-theme="dark"] .od-banner.wait { background: #3b3320 !important; color: #e0bd6a !important; }
+    [data-theme="dark"] .od-banner.cancelled { background: #3b2523 !important; color: #e19b93 !important; }
+    [data-theme="dark"] .od-event.latest::before { background: #7fbf9f !important; }
+
     .od-close {
       display: block;
       width: 100%;
@@ -645,18 +726,7 @@
   <main class="orders-page">
 
     <div class="orders-top" id="ordersTop">
-    <a
-      href="profile.html"
-      class="back-button"
-      aria-label="Back to profile"
-    >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M15 5L8 12L15 19"></path>
-      </svg>
-    </a>
-
     <header class="orders-header">
-      <p class="verified-badge">BODEGS ACCOUNT</p>
       <h1>My Orders</h1>
       <p>View your purchases and keep track of your orders.</p>
     </header>
@@ -1062,12 +1132,38 @@
       const shipped = status === "shipped" || status === "delivered" || allShipped;
       const delivered = status === "delivered";
 
-      const steps = cancelled ? "" : `
-        <div class="od-steps">
-          <div class="od-step done">Ordered</div>
-          <div class="od-step ${order.paid ? "done" : ""}">Paid</div>
-          <div class="od-step ${shipped ? "done" : ""}">Shipped</div>
-          <div class="od-step ${delivered ? "done" : ""}">Delivered</div>
+      const when = value => {
+        if (!value) return "";
+        const d = new Date(value);
+        return isNaN(d) ? "" : d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+      };
+      const shippedTimes = order.products.map(p => p.shippedAt).filter(Boolean).sort();
+      const events = [];
+      if (delivered) events.push(["Delivered", "Your order has been delivered", ""]);
+      if (shipped) events.push(["Shipped", "Your order is on its way", when(shippedTimes[shippedTimes.length - 1])]);
+      if (order.paid) events.push(["Payment confirmed", "We received your payment", ""]);
+      if (cancelled) events.unshift(["Cancelled", "This order was cancelled", ""]);
+      events.push(["Order placed", order.paid || cancelled ? "" : "Waiting for your payment", when(order.createdAt)]);
+
+      const bannerText = cancelled ? "Cancelled"
+        : delivered ? "Delivered"
+        : shipped ? "Shipped"
+        : order.paid ? "Paid · preparing your order"
+        : "Awaiting payment";
+      const bannerClass = cancelled ? "cancelled" : (order.paid ? "good" : "wait");
+
+      const steps = `
+        <div class="od-banner dk-skip ${bannerClass}">
+          <span class="od-banner-dot"></span>${bannerText}
+        </div>
+        <div class="od-section od-updates">
+          <h3>ORDER UPDATES</h3>
+          ${events.map((e, i) => `
+            <div class="od-event ${i === 0 ? "latest" : ""}">
+              ${e[2] ? `<small>${escapeHTML(e[2])}</small>` : ""}
+              <strong>${escapeHTML(e[0])}</strong>
+              ${e[1] ? `<span>${escapeHTML(e[1])}</span>` : ""}
+            </div>`).join("")}
         </div>`;
 
       const items = order.products.length ? order.products.map(p => {
@@ -1228,7 +1324,8 @@
           quantity: item.qty,
           size: item.size,
           color: item.color,
-          shipped: !!item.shipped_at
+          shipped: !!item.shipped_at,
+          shippedAt: item.shipped_at
         }))
       }));
 
