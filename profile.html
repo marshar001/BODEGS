@@ -820,8 +820,10 @@
       };
 
       const KEY_USER = "weraeUser";
-      const KEY_ADDRESSES = "weraeAddresses";
-      const KEY_AVATAR = "weraeAvatar";
+      /* Photo and addresses are kept per account, so two accounts on one phone no longer share them. */
+      const WHO = String(((function () { try { return JSON.parse(localStorage.getItem("weraeUser") || "null"); } catch (e) { return null; } })() || {}).email || "guest").toLowerCase();
+      const KEY_ADDRESSES = "weraeAddresses:" + WHO;
+      const KEY_AVATAR = "weraeAvatar:" + WHO;
 
       function read(key, fallback) {
         try {
@@ -856,6 +858,18 @@
         window.location.replace("login.html?next=profile.html");
         return;
       }
+
+      /* one-time: the old shared copies go to the first account that opens Profile, then are removed */
+      try {
+        ["Addresses", "Avatar"].forEach(function (name) {
+          const oldValue = localStorage.getItem("wera" + "e" + name);
+          const newKey = "wera" + "e" + name + ":" + WHO;
+          if (oldValue !== null) {
+            if (localStorage.getItem(newKey) === null) localStorage.setItem(newKey, oldValue);
+            localStorage.removeItem("wera" + "e" + name);
+          }
+        });
+      } catch (error) {}
 
       /* ---------- small helpers ---------- */
 
@@ -956,9 +970,12 @@
         ).toUpperCase();
       }
 
+      let remoteAvatar = null;
+      let preferLocal = false;
+
       function renderProfile() {
         const avatar = document.getElementById("avatar");
-        const photo = read(KEY_AVATAR, null);
+        const photo = preferLocal ? read(KEY_AVATAR, null) : (remoteAvatar || read(KEY_AVATAR, null));
 
         avatar.innerHTML = "";
 
@@ -987,7 +1004,37 @@
           cart.length === 1 ? "1 item" : cart.length + " items";
       }
 
-      /* Profile photo: resized to a small square before saving */
+      /* Profile photo: resized to a small square, shown at once, and saved to your account so it follows you */
+
+      async function uploadAvatar(blob) {
+        try {
+          const got = await sb.auth.getUser();
+          const id = got && got.data && got.data.user && got.data.user.id;
+          if (!id || !blob) throw new Error("no account");
+          const path = id + "/avatar.jpg";
+          const up = await sb.storage.from("avatars").upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "3600" });
+          if (up.error) throw up.error;
+          const url = sb.storage.from("avatars").getPublicUrl(path).data.publicUrl + "?v=" + Date.now();
+          const meta = await sb.auth.updateUser({ data: { avatar_url: url } });
+          if (meta.error) throw meta.error;
+          remoteAvatar = url;
+          preferLocal = false;
+          toast("Profile photo updated");
+        } catch (error) {
+          toast("Photo saved on this phone only");
+        }
+      }
+
+      (async function loadRemoteAvatar() {
+        try {
+          const got = await sb.auth.getUser();
+          const meta = got && got.data && got.data.user && got.data.user.user_metadata;
+          if (meta && meta.avatar_url && !preferLocal) {
+            remoteAvatar = meta.avatar_url;
+            renderProfile();
+          }
+        } catch (error) {}
+      })();
 
       const avatarInput = document.getElementById("avatarInput");
 
@@ -1016,12 +1063,13 @@
 
             canvas.getContext("2d").drawImage(image, sx, sy, side, side, 0, 0, size, size);
 
-            if (write(KEY_AVATAR, canvas.toDataURL("image/jpeg", 0.82))) {
-              renderProfile();
-              toast("Profile photo updated");
-            } else {
+            if (!write(KEY_AVATAR, canvas.toDataURL("image/jpeg", 0.82))) {
               toast("Could not save the photo on this device");
+              return;
             }
+            preferLocal = true;
+            renderProfile();
+            canvas.toBlob(function (blob) { uploadAvatar(blob); }, "image/jpeg", 0.82);
           };
 
           image.src = reader.result;
@@ -1272,6 +1320,10 @@
         );
         if (!ok) return;
         let removed = false;
+        try {
+          const got = await sb.auth.getUser();
+          if (got && got.data && got.data.user) await sb.storage.from("avatars").remove([got.data.user.id + "/avatar.jpg"]);
+        } catch (error) {}
         try {
           if (typeof sb !== "undefined" && sb.rpc) {
             const res = await sb.rpc("delete_my_account");
