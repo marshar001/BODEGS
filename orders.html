@@ -121,6 +121,33 @@
       color: #795516;
     }
 
+    .order-pay-badge {
+      display: block;
+      margin-top: 6px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .order-pay-badge.paid {
+      background: #d9ecdf;
+      color: #1f5b34;
+    }
+
+    .order-pay-badge.unpaid {
+      background: #f9d9d5;
+      color: #8a2f27;
+    }
+
+    button.order-action {
+      border: 0;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
     .order-status.cancelled {
       background: #f3d8d5;
       color: #873b32;
@@ -404,7 +431,8 @@
 
   </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://js.paystack.co/v2/inline.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script>
     const ordersList = document.getElementById("ordersList");
@@ -617,9 +645,12 @@
                 </div>
               </div>
 
-              <span class="order-status ${status}">
-                ${status.charAt(0).toUpperCase() + status.slice(1)}
-              </span>
+              <div>
+                <span class="order-status ${status}">
+                  ${status.charAt(0).toUpperCase() + status.slice(1)}
+                </span>
+                ${status === "cancelled" ? "" : `<span class="order-pay-badge ${order.paid ? "paid" : "unpaid"}">${order.paid ? "Paid" : "Awaiting payment"}</span>`}
+              </div>
             </div>
 
             <div class="order-products">
@@ -634,13 +665,15 @@
                 </strong>
               </div>
 
-              <a
+              ${(!order.paid && status !== "cancelled")
+                ? `<button type="button" class="order-action" data-pay="${escapeHTML(order.rawId)}">Pay now</button>`
+                : `<a
                 class="order-action"
                 href="profile.html"
                 aria-label="View account for order ${escapeHTML(orderId)}"
               >
                 Order details
-              </a>
+              </a>`}
             </div>
           </article>
         `;
@@ -662,7 +695,54 @@
       });
     });
 
-    (async function loadMyOrders() {
+    // Paystack TEST public key. Safe to show; the secret key never goes in this page.
+    const PAYSTACK_PUBLIC_KEY = "pk_test_7931850570204e5adeff382152b45f7f0077cf8e";
+    let loadMyOrdersAgain = null;
+
+    ordersList.addEventListener("click", async event => {
+      const button = event.target.closest("[data-pay]");
+      if (!button) return;
+
+      const orderId = button.getAttribute("data-pay");
+      button.disabled = true;
+      button.textContent = "Opening...";
+
+      try {
+        const found = await sb.from("orders").select("total").eq("id", orderId).single();
+        const session = await sb.auth.getSession();
+        const email = session && session.data && session.data.session && session.data.session.user.email;
+        if (found.error || !found.data || !email) throw new Error("lookup failed");
+
+        const reference = "BDG-" + String(orderId).replace(/-/g, "").slice(0, 20) + "-" + Date.now();
+
+        new PaystackPop().newTransaction({
+          key: PAYSTACK_PUBLIC_KEY,
+          email: email,
+          amount: Math.round(Number(found.data.total) * 100),
+          currency: "NGN",
+          ref: reference,
+          metadata: { order_id: orderId },
+          onSuccess: async function () {
+            try {
+              await sb.functions.invoke("verify-payment", {
+                body: { reference: reference, order_id: orderId }
+              });
+            } catch (e) { /* the list below shows the real state */ }
+            if (loadMyOrdersAgain) loadMyOrdersAgain();
+          },
+          onCancel: function () {
+            button.disabled = false;
+            button.textContent = "Pay now";
+          }
+        });
+      } catch (e) {
+        button.disabled = false;
+        button.textContent = "Pay now";
+        alert("We couldn't start the payment. Please try again.");
+      }
+    });
+
+    async function loadMyOrders() {
       ordersList.innerHTML =
         '<div class="orders-message">Loading your orders...</div>';
 
@@ -672,7 +752,7 @@
       const { data, error } = await sb
         .from("orders")
         .select(
-          "id, status, total, created_at, " +
+          "id, status, payment_status, total, created_at, " +
           "order_items(qty, price_at_purchase, product_name, product_image)"
         )
         .eq("user_id", user.id)
@@ -687,6 +767,8 @@
 
       loadedOrders = data.map(order => ({
         id: "BOD-" + String(order.id).slice(0, 8).toUpperCase(),
+        rawId: order.id,
+        paid: order.payment_status === "paid",
         createdAt: order.created_at,
         status: order.status,
         total: order.total,
@@ -699,10 +781,13 @@
       }));
 
       renderOrders();
-    })();
+    }
+
+    loadMyOrdersAgain = loadMyOrders;
+    loadMyOrders();
   </script>
 
-<script src="nav.js?v=6"></script>
+<script src="nav.js?v=7"></script>
 </body>
   </html>
   
