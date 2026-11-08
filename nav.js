@@ -104,6 +104,61 @@
     }
   }
 
+  /* If this account was deleted in the last 30 days, offer to bring it back (checked once per visit). */
+  function checkDeletion() {
+    try {
+      if (typeof sb === "undefined" || !sb.auth || !sb.rpc) return;
+      sb.auth.getSession().then(function (r) {
+        var u = r && r.data && r.data.session && r.data.session.user;
+        if (!u) return;
+        var key = "bodegsDelOk:" + u.id;
+        try { if (sessionStorage.getItem(key)) return; } catch (e) {}
+        sb.rpc("my_deletion_status").then(function (res) {
+          if (res.error) return;
+          if (!res.data) { try { sessionStorage.setItem(key, "1"); } catch (e) {} return; }
+          ask(new Date(res.data), key);
+        });
+      });
+    } catch (e) {}
+  }
+
+  function ask(when, key) {
+    var dark = false;
+    try { dark = window.BODEGSTheme && window.BODEGSTheme.isDark(); } catch (e) {}
+    var back = document.createElement("div");
+    back.className = "dk-skip";
+    back.style.cssText = "position:fixed;inset:0;z-index:2147483600;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Arial,sans-serif";
+    var box = document.createElement("div");
+    box.className = "dk-skip";
+    box.style.cssText = "width:100%;max-width:340px;border-radius:22px;padding:22px;text-align:center;background:" + (dark ? "#2c2c2c" : "#fff") + ";color:" + (dark ? "#f2f2f2" : "#1d1d1d");
+    var date = when.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    box.innerHTML = '<div style="font-size:18px;font-weight:700;margin-bottom:8px">Restore your account?</div>' +
+      '<div style="font-size:14px;line-height:1.5;opacity:.8;margin-bottom:18px">This account is set to be deleted on ' + date + '. Restore it to keep your account.</div>';
+    function btn(text, main) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = text;
+      b.style.cssText = "display:block;width:100%;border:0;border-radius:14px;padding:13px;margin-top:8px;font-size:15px;font-weight:700;cursor:pointer;background:" + (main ? "#173b32" : (dark ? "#3d3d3d" : "#eee")) + ";color:" + (main ? "#fff" : (dark ? "#f2f2f2" : "#1d1d1d"));
+      return b;
+    }
+    var yes = btn("Restore account", true), no = btn("Keep it deleted", false);
+    yes.onclick = function () {
+      yes.disabled = true;
+      sb.rpc("restore_my_account").then(function (r) {
+        if (r.error) { yes.disabled = false; yes.textContent = "Try again"; return; }
+        try { sessionStorage.setItem(key, "1"); } catch (e) {}
+        back.remove();
+      });
+    };
+    no.onclick = function () {
+      sb.auth.signOut().then(function () { try { localStorage.removeItem("weraeUser"); } catch (e) {} location.href = "index.html"; });
+    };
+    box.appendChild(yes); box.appendChild(no); back.appendChild(box);
+    document.body.appendChild(back);
+  }
+
+  if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", checkDeletion); }
+  else { checkDeletion(); }
+
   if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", build); }
   else { build(); }
 })();

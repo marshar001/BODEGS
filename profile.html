@@ -1333,20 +1333,20 @@
       async function confirmedDelete() {
         const ok = await confirmBox(
           "Delete your account?",
-          "This removes your details, saved addresses and photo, and signs you out. This cannot be undone.",
+          "Your account will be deleted in 30 days. Sign in again before then to cancel. Some order and payment records are kept for legal reasons.",
           "Delete account", true
         );
         if (!ok) return;
-        let removed = false;
+        try {
+          const res = await sb.rpc("request_account_deletion");
+          if (res.error) throw res.error;
+        } catch (error) {
+          toast("Could not delete the account right now. Please try again.");
+          return;
+        }
         try {
           const got = await sb.auth.getUser();
           if (got && got.data && got.data.user) await sb.storage.from("avatars").remove([got.data.user.id + "/avatar.jpg"]);
-        } catch (error) {}
-        try {
-          if (typeof sb !== "undefined" && sb.rpc) {
-            const res = await sb.rpc("delete_my_account");
-            removed = !res.error;
-          }
         } catch (error) {}
         await endSession();
         remove(KEY_USER);
@@ -1590,6 +1590,6 @@
     })();
   </script>
 
-  <script src="nav.js?v=4"></script>
+  <script src="nav.js?v=5"></script>
 </body>
 </html>
