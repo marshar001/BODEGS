@@ -18,21 +18,38 @@
   <link rel="stylesheet" href="theme.css?v=20261031">
   <script src="theme.js?v=20261031" defer></script>
   <style>
-    .saved-addrs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .saved-addrs[hidden] { display: none; }
-    .saved-addrs button {
-      border: 1px solid rgba(23, 59, 50, 0.3);
-      border-radius: 18px;
-      padding: 8px 14px;
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    .saved-addrs button.active { background: #173b32; border-color: #173b32; color: #fff; }
-    .save-addr-row { display: flex !important; flex-direction: row !important; align-items: center; gap: 10px; margin-top: 4px; font-size: 14px; }
-    .save-addr-row input { width: 18px !important; height: 18px; flex: none; margin: 0; padding: 0; }
+    .dl-card { border:1px solid rgba(23,59,50,.2); border-radius:14px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; justify-content:space-between; }
+    .dl-card .dl-tag { font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; opacity:.65; margin:0 0 6px; }
+    .dl-card .dl-who { font-weight:600; margin:0 0 4px; font-size:15px; }
+    .dl-card .dl-line { margin:0; font-size:14px; line-height:1.45; opacity:.85; }
+    .dl-change { border:0; background:none; color:#173b32; font:inherit; font-weight:700; font-size:14px; text-decoration:underline; cursor:pointer; padding:2px 0; flex:none; }
+    [data-theme="dark"] .dl-change { color:#9fd4bf; }
+    .dl-empty { width:100%; border:1.5px dashed rgba(23,59,50,.4); border-radius:14px; padding:16px; background:transparent; color:inherit; font:inherit; font-weight:600; cursor:pointer; text-align:center; }
+    .terms-box { display:flex !important; flex-direction:row !important; align-items:flex-start; gap:12px; border:1px solid rgba(23,59,50,.25); border-radius:12px; padding:14px 16px; margin:0 0 14px; font-size:14px; line-height:1.45; }
+    .terms-box input { width:20px !important; height:20px; flex:none; margin:1px 0 0; padding:0; accent-color:#173b32; }
+    .terms-box a { color:inherit; font-weight:700; text-decoration:underline; }
+    #placeDemoOrder:disabled { background:#c8c8c8 !important; color:#fff !important; border-color:#c8c8c8 !important; cursor:not-allowed; opacity:1; }
+    [data-theme="dark"] #placeDemoOrder:disabled { background:#4a4a4a !important; color:#999 !important; border-color:#4a4a4a !important; }
+    #payHint { font-size:13px; text-align:center; opacity:.7; margin:8px 0 0; min-height:1em; }
+    .ad-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:900; display:flex; align-items:flex-end; justify-content:center; }
+    .ad-backdrop[hidden] { display:none; }
+    .ad-sheet { background:#fff; color:#1b1b1b; width:100%; max-width:560px; max-height:88vh; overflow-y:auto; border-radius:20px 20px 0 0; padding:18px 18px 24px; box-sizing:border-box; }
+    [data-theme="dark"] .ad-sheet { background:#1d1d1d; color:#f0f0f0; }
+    .ad-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:14px; }
+    .ad-head h3 { margin:0; font-size:17px; line-height:1.3; }
+    .ad-x { border:0; background:none; font-size:26px; line-height:1; cursor:pointer; color:inherit; padding:0 4px; }
+    .ad-item { border:1px solid rgba(23,59,50,.2); border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+    .ad-item.sel { border-color:#173b32; box-shadow:0 0 0 1px #173b32; }
+    .ad-item b { display:block; margin-bottom:3px; }
+    .ad-item p { margin:0 0 8px; font-size:14px; opacity:.85; line-height:1.4; }
+    .ad-item button { border:1px solid #173b32; background:transparent; color:inherit; border-radius:18px; padding:7px 18px; font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+    .ad-item.sel button { background:#173b32; color:#fff; }
+    .ad-add { width:100%; border:0; border-radius:12px; padding:14px; background:#173b32; color:#fff; font:inherit; font-weight:700; cursor:pointer; margin-top:4px; }
+    .ad-form label { display:block; margin-bottom:12px; font-size:14px; }
+    .ad-form input, .ad-form select { display:block; width:100%; box-sizing:border-box; margin-top:5px; padding:12px; border:1px solid rgba(0,0,0,.25); border-radius:10px; font:inherit; background:transparent; color:inherit; }
+    .ad-form .ad-err { color:#a3392f; font-size:13px; min-height:1em; margin:0 0 8px; }
+    .ad-form .row2 { display:flex; gap:10px; } .ad-form .row2 label { flex:1; }
+    .ad-back { border:0; background:none; color:inherit; font:inherit; font-size:14px; text-decoration:underline; cursor:pointer; padding:0; margin-bottom:10px; }
   </style>
 </head>
 
@@ -50,54 +67,16 @@
     <header class="checkout-header">
       <p class="verified-badge">BODEGS CHECKOUT</p>
       <h1>Checkout</h1>
-      <p>Enter your delivery information to continue.</p>
+      <p>Confirm your delivery address to continue.</p>
     </header>
 
     <section class="checkout-section">
-      <h2>Delivery Information</h2>
-
-      <div id="savedAddrs" class="saved-addrs" hidden></div>
-
-      <label>
-        Full Name
-        <input
-          type="text"
-          id="checkoutName"
-          placeholder="Enter your full name"
-        >
-      </label>
-
-      <label>
-        Phone Number
-        <input
-          type="tel"
-          id="checkoutPhone"
-          placeholder="Enter your phone number"
-        >
-      </label>
-
-      <label>
-        Delivery Address
-        <textarea
-          id="checkoutAddress"
-          rows="3"
-          placeholder="Enter your delivery address"
-        ></textarea>
-      </label>
-
-      <label>
-        City
-        <input
-          type="text"
-          id="checkoutCity"
-          placeholder="Enter your city"
-        >
-      </label>
-
-      <label class="save-addr-row">
-        <input type="checkbox" id="saveAddress" checked>
-        <span>Save this address for next time</span>
-      </label>
+      <h2>Delivery</h2>
+      <div id="deliveryCard"></div>
+      <input type="hidden" id="checkoutName">
+      <input type="hidden" id="checkoutPhone">
+      <input type="hidden" id="checkoutAddress">
+      <input type="hidden" id="checkoutCity">
     </section>
 
     <section class="checkout-section">
@@ -130,15 +109,24 @@
       </div>
     </section>
 
-        <button
+    <label class="terms-box">
+      <input type="checkbox" id="acceptTerms">
+      <span>I accept BODEGS's <a href="profile.html#terms" target="_blank" rel="noopener">Terms &amp; Conditions ↗</a> and all policies linked within them.</span>
+    </label>
+
+    <button
       type="button"
+      disabled
       class="checkout-place-order"
       id="placeDemoOrder"
     >
       Pay now
     </button>
 
+    <p id="payHint"></p>
     <p id="checkoutMessage" role="status" aria-live="polite"></p>
+
+    <div class="ad-backdrop" id="adBackdrop" hidden><div class="ad-sheet" id="adSheet"></div></div>
 
   </main>
 
@@ -160,96 +148,153 @@
     // Must be signed in (real BODEGS login). Fill in the delivery details we already know,
     // so a returning customer does not type them again.
     let addrWho = "guest";
+    let addrList = [];      // saved addresses
+    let chosen = null;      // {name, phone, address, city, state}
+    let userMeta = {};
+    const STATES = ["Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT Abuja","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa","Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara"];
 
     function readList(key) {
       try { const v = JSON.parse(localStorage.getItem(key) || "[]"); return Array.isArray(v) ? v : []; }
       catch (e) { return []; }
     }
 
-    function fillDelivery(d) {
-      if (!d) return;
-      const set = (id, value) => {
-        const box = document.getElementById(id);
-        if (box && value) box.value = value;
+    function saveList() {
+      try { localStorage.setItem("weraeAddresses:" + addrWho, JSON.stringify(addrList)); } catch (e) {}
+      try { sb.auth.updateUser({ data: { bodegs_addresses: addrList } }); } catch (e) {}
+    }
+
+    function pickAddress(a) {
+      chosen = {
+        name: a.name || userMeta.full_name || "",
+        phone: a.phone || "",
+        address: a.line || a.address || "",
+        city: a.city || "",
+        state: a.state || ""
       };
-      set("checkoutName", d.name);
-      set("checkoutPhone", d.phone);
-      set("checkoutAddress", d.address || d.line);
-      set("checkoutCity", d.city);
+      try { localStorage.setItem("weraeDelivery:" + addrWho, JSON.stringify(Object.assign({ id: a.id }, chosen))); } catch (e) {}
+      document.getElementById("checkoutName").value = chosen.name;
+      document.getElementById("checkoutPhone").value = chosen.phone;
+      document.getElementById("checkoutAddress").value = chosen.address;
+      document.getElementById("checkoutCity").value = chosen.state ? chosen.city + ", " + chosen.state : chosen.city;
+      drawCard();
+      updatePayState();
     }
 
-    function drawSavedAddresses(list) {
-      const holder = document.getElementById("savedAddrs");
-      if (!holder || !list.length) return;
-      holder.hidden = false;
-      holder.innerHTML = "";
+    function addressComplete() {
+      return !!(chosen && chosen.name && chosen.phone && chosen.address && chosen.city);
+    }
 
-      list.slice(0, 5).forEach(function (a, index) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.textContent = a.label || ("Address " + (index + 1));
-        b.addEventListener("click", function () {
-          holder.querySelectorAll("button").forEach(x => x.classList.remove("active"));
-          b.classList.add("active");
-          fillDelivery({ address: a.line, city: a.city });
+    function drawCard() {
+      const card = document.getElementById("deliveryCard");
+      if (!addressComplete()) {
+        card.innerHTML = '<button type="button" class="dl-empty" id="dlAdd">+ Add delivery address</button>';
+        document.getElementById("dlAdd").addEventListener("click", function () { openSheet(addrList.length ? "list" : "form"); });
+        return;
+      }
+      const place = [chosen.city, chosen.state].filter(Boolean).join(", ");
+      card.innerHTML = '<div class="dl-card"><div><p class="dl-tag">Home delivery</p>' +
+        '<p class="dl-who">' + escapeHTML(chosen.name) + ' · ' + escapeHTML(chosen.phone) + '</p>' +
+        '<p class="dl-line">' + escapeHTML(chosen.address) + '<br>' + escapeHTML(place) + '</p></div>' +
+        '<button type="button" class="dl-change" id="dlChange">Change</button></div>';
+      document.getElementById("dlChange").addEventListener("click", function () { openSheet("list"); });
+    }
+
+    function closeSheet() { document.getElementById("adBackdrop").hidden = true; document.body.style.overflow = ""; }
+
+    function openSheet(view) {
+      const back = document.getElementById("adBackdrop");
+      const sheet = document.getElementById("adSheet");
+      back.hidden = false;
+      document.body.style.overflow = "hidden";
+      if (view === "form") drawForm(sheet); else drawList(sheet);
+    }
+
+    function drawList(sheet) {
+      sheet.innerHTML = '<div class="ad-head"><h3>Please select or enter a new delivery address</h3><button class="ad-x" type="button" aria-label="Close">×</button></div><div id="adItems"></div><button type="button" class="ad-add" id="adNew">Add new address</button>';
+      sheet.querySelector(".ad-x").addEventListener("click", closeSheet);
+      const holder = sheet.querySelector("#adItems");
+      addrList.forEach(function (a, i) {
+        const on = chosen && (a.line || "") === chosen.address && (a.city || "") === chosen.city;
+        const d = document.createElement("div");
+        d.className = "ad-item" + (on ? " sel" : "");
+        d.innerHTML = '<b>' + escapeHTML(a.label || "Address " + (i + 1)) + '</b><p>' +
+          escapeHTML([a.name, a.phone].filter(Boolean).join(" · ")) + (a.name || a.phone ? '<br>' : '') +
+          escapeHTML(a.line || "") + '<br>' + escapeHTML([a.city, a.state].filter(Boolean).join(", ")) + '</p>' +
+          '<button type="button">' + (on ? "Selected" : "Select") + '</button>';
+        d.querySelector("button").addEventListener("click", function () {
+          pickAddress(a);
+          closeSheet();
         });
-        holder.appendChild(b);
+        holder.appendChild(d);
       });
-
-      const fresh = document.createElement("button");
-      fresh.type = "button";
-      fresh.textContent = "+ New address";
-      fresh.addEventListener("click", function () {
-        holder.querySelectorAll("button").forEach(x => x.classList.remove("active"));
-        fresh.classList.add("active");
-        document.getElementById("checkoutAddress").value = "";
-        document.getElementById("checkoutCity").value = "";
-        document.getElementById("checkoutAddress").focus();
-      });
-      holder.appendChild(fresh);
+      sheet.querySelector("#adNew").addEventListener("click", function () { drawForm(sheet); });
+      sheet.addEventListener("click", function (e) { e.stopPropagation(); });
     }
+
+    function drawForm(sheet) {
+      const opts = STATES.map(s => '<option value="' + s + '">' + s + '</option>').join("");
+      sheet.innerHTML = (addrList.length ? '<button type="button" class="ad-back" id="adBack">← Back to saved addresses</button>' : '') +
+        '<div class="ad-head"><h3>Add new address</h3><button class="ad-x" type="button" aria-label="Close">×</button></div>' +
+        '<div class="ad-form">' +
+        '<label>Full name<input id="fName" type="text" placeholder="Full name" autocomplete="name"></label>' +
+        '<label>Phone number<input id="fPhone" type="tel" placeholder="Phone number" autocomplete="tel"></label>' +
+        '<label>House number, street name<input id="fLine" type="text" placeholder="House number, street name, landmark"></label>' +
+        '<div class="row2"><label>City / Area<input id="fCity" type="text" placeholder="City or area"></label>' +
+        '<label>State<select id="fState"><option value="">Select state</option>' + opts + '</select></label></div>' +
+        '<label>Label (optional)<input id="fLabel" type="text" placeholder="Home, Office..."></label>' +
+        '<p class="ad-err" id="fErr"></p>' +
+        '<button type="button" class="ad-add" id="fSave">Save and use this address</button></div>';
+      sheet.querySelector(".ad-x").addEventListener("click", closeSheet);
+      const bk = sheet.querySelector("#adBack");
+      if (bk) bk.addEventListener("click", function () { drawList(sheet); });
+      const prefName = (chosen && chosen.name) || userMeta.full_name || "";
+      sheet.querySelector("#fName").value = prefName;
+      if (chosen && chosen.phone) sheet.querySelector("#fPhone").value = chosen.phone;
+      sheet.querySelector("#fSave").addEventListener("click", function () {
+        const v = id => sheet.querySelector(id).value.trim();
+        const a = { name: v("#fName"), phone: v("#fPhone"), line: v("#fLine"), city: v("#fCity"), state: v("#fState"), label: v("#fLabel") };
+        const err = sheet.querySelector("#fErr");
+        if (!a.name || !a.phone || !a.line || !a.city || !a.state) { err.textContent = "Please fill in every field except the label."; return; }
+        if (a.phone.replace(/\D/g, "").length < 10) { err.textContent = "Please enter a valid phone number."; return; }
+        a.id = String(Date.now());
+        a.label = a.label || (addrList.length ? "Address " + (addrList.length + 1) : "Home");
+        addrList.push(a);
+        saveList();
+        pickAddress(a);
+        closeSheet();
+      });
+    }
+
+    document.getElementById("adBackdrop").addEventListener("click", function (e) {
+      if (e.target === this) closeSheet();
+    });
 
     requireLogin().then(function (user) {
       if (!user) return;
-      const meta = user.user_metadata || {};
+      userMeta = user.user_metadata || {};
       addrWho = String(user.email || "guest").toLowerCase();
 
-      const saved = readList("weraeAddresses:" + addrWho);
+      addrList = readList("weraeAddresses:" + addrWho);
+      if (!addrList.length && Array.isArray(userMeta.bodegs_addresses)) addrList = userMeta.bodegs_addresses;
+
       let last = null;
       try { last = JSON.parse(localStorage.getItem("weraeDelivery:" + addrWho) || "null"); } catch (e) {}
-      last = last || meta.bodegs_delivery || null;
+      last = last || userMeta.bodegs_delivery || null;
 
-      const nameBox = document.getElementById("checkoutName");
-      if (nameBox && !nameBox.value && meta.full_name) nameBox.value = meta.full_name;
+      // Older saved addresses had no name or phone: borrow them from the last delivery.
+      addrList.forEach(function (a) {
+        if (last) { if (!a.name) a.name = last.name || ""; if (!a.phone) a.phone = last.phone || ""; }
+      });
 
-      if (last) fillDelivery(last);
-      else if (saved.length) fillDelivery({ address: saved[0].line, city: saved[0].city });
-
-      drawSavedAddresses(saved);
+      let start = null;
+      if (last && (last.address || last.line)) start = { id: last.id, name: last.name, phone: last.phone, line: last.address || last.line, city: last.city, state: last.state };
+      else if (addrList.length) start = addrList[0];
+      if (start) pickAddress(start); else { drawCard(); updatePayState(); }
     });
 
-    // Remember this delivery for next time (on this phone, and on the account for other devices).
+    // Remember this delivery on the account (other phones) once an order is placed.
     function rememberDelivery(d) {
-      try { localStorage.setItem("weraeDelivery:" + addrWho, JSON.stringify(d)); } catch (e) {}
       try { sb.auth.updateUser({ data: { bodegs_delivery: d } }); } catch (e) {}
-
-      const box = document.getElementById("saveAddress");
-      if (box && !box.checked) return;
-      try {
-        const key = "weraeAddresses:" + addrWho;
-        const list = readList(key);
-        const exists = list.some(a => String(a.line || "").trim().toLowerCase() === d.address.toLowerCase()
-          && String(a.city || "").trim().toLowerCase() === d.city.toLowerCase());
-        if (!exists) {
-          list.push({
-            id: String(Date.now()),
-            label: list.length ? "Address " + (list.length + 1) : "Home",
-            line: d.address,
-            city: d.city
-          });
-          localStorage.setItem(key, JSON.stringify(list));
-        }
-      } catch (e) {}
     }
 
     const checkoutItems =
@@ -370,6 +415,17 @@
     const PAYSTACK_PUBLIC_KEY = "pk_test_7931850570204e5adeff382152b45f7f0077cf8e";
     let pendingOrder = null;
 
+    // Pay now stays grey until the delivery address is set and the terms are accepted.
+    function updatePayState() {
+      const terms = document.getElementById("acceptTerms").checked;
+      const ok = addressComplete() && terms;
+      placeDemoOrderButton.disabled = !ok;
+      const hint = document.getElementById("payHint");
+      hint.textContent = ok ? "" : (!addressComplete() ? "Add a delivery address to continue." : "Accept the Terms & Conditions to continue.");
+    }
+    document.getElementById("acceptTerms").addEventListener("change", updatePayState);
+    updatePayState();
+
     placeDemoOrderButton.addEventListener("click", async () => {
       const name =
         document.getElementById("checkoutName").value.trim();
@@ -440,12 +496,12 @@
             }
 
             checkoutMessage.textContent = text;
-            placeDemoOrderButton.disabled = false;
+            updatePayState();
             return;
           }
 
           pendingOrder = { id: orderId, signature: signature };
-          rememberDelivery({ name: name, phone: phone, address: address, city: city });
+          rememberDelivery(chosen);
 
           // Record the chosen size and colour on the saved order (best effort).
           try {
@@ -494,12 +550,12 @@
           },
           onCancel: function () {
             checkoutMessage.textContent = "Payment cancelled. Tap Pay now when you are ready.";
-            placeDemoOrderButton.disabled = false;
+            updatePayState();
           }
         });
       } catch (e) {
         checkoutMessage.textContent = "We couldn't start the payment. Please try again.";
-        placeDemoOrderButton.disabled = false;
+        updatePayState();
       }
     });
   
