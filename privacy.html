@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy &amp; Cookie Policy (Buyers) — BODEGS</title>
+<style>
+  :root { --brand:#173b32; --bg:#f5f0e7; --card:#faf7f1; --muted:#6f7f78; --line:rgba(23,59,50,.16); --pill:#173b32; --pillt:#fff; }
+  :root[data-theme="dark"] { --brand:#e8efe9; --bg:#121513; --card:#1b201d; --muted:#9aa8a1; --line:rgba(255,255,255,.12); --pill:#2f6a58; --pillt:#fff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; }
+  body { background:var(--bg); color:var(--brand); font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-text-size-adjust:100%; }
+  .top { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px 10px; }
+  .row { display:flex; align-items:center; gap:12px; max-width:720px; margin:0 auto; }
+  .back { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--brand); display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
+  .back svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .row b { font-family:Georgia,serif; font-size:20px; letter-spacing:.06em; }
+  main { max-width:720px; margin:0 auto; padding:20px 18px 60px; }
+  h1 { font-family:Georgia,serif; font-size:28px; line-height:1.15; margin:6px 0 4px; }
+  .upd { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  h2 { font-size:16.5px; margin:26px 0 6px; }
+  p, li { font-size:15px; line-height:1.65; margin:0 0 10px; }
+  ul { padding-left:20px; margin:0 0 10px; }
+  .note { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; font-size:14px; line-height:1.55; margin:0 0 14px; }
+  table { width:100%; border-collapse:collapse; margin:8px 0 14px; font-size:13.5px; }
+  th,td { text-align:left; vertical-align:top; padding:9px 8px; border-bottom:1px solid var(--line); line-height:1.45; }
+  th { font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  td:first-child { font-weight:600; width:34%; }
+  a { color:inherit; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="row">
+    <button class="back" id="back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <b>BODEGS</b>
+  </div>
+</div>
+<main id="doc"></main>
+<script>
+(function () {
+  var theme = "";
+  try { theme = localStorage.getItem("bodegsTheme") || ""; } catch (e) {}
+  if (theme === "dark" || (theme !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.setAttribute("data-theme", "dark");
+  var UPDATED = "Last updated: 9 November 2026";
+  var D = {"title": "Privacy & Cookie Policy (Buyers)", "body": [["p", "This policy explains what personal information BODEGS collects from you as a buyer or visitor, why we collect it, who sees it, and your rights. It follows the Nigeria Data Protection Act 2023. BODEGS is the “data controller” of your information. Contact for privacy questions: bodegs.ng@gmail.com or WhatsApp 08107771903."], ["h", "1. What we collect and what we use it for"], ["table", [["What we collect", "Why we need it"], ["Name, email address and password (the password is stored scrambled; we cannot read it)", "To create your account, sign you in and contact you about your orders. Legal basis: it is needed to provide the service."], ["Your age (you must be 18+)", "To confirm you are old enough to use BODEGS."], ["If you use Google sign-in: your Google name, email and profile photo", "To sign you in without a password and fill in your profile. Legal basis: your consent."], ["Profile photo (optional)", "To show on your profile. Only if you add one."], ["Delivery details: name, phone number, address, city and state", "To deliver your order. These are given to the BODEGS hub and delivery partners. Sellers do not see your address, and they see only part of your phone number."], ["Order and payment records: items, amounts, order status, Paystack payment reference, refunds", "To process your order, refunds and cancellations, pay the seller, and keep accounting and tax records. We do not hold your card number."], ["Messages and photos you send to support", "To look into problems, returns and complaints."], ["Saved on your phone (see section 6): sign-in session, cart, saved addresses, Light/Dark choice, remembered email", "To make the app work and remember your choices."], ["Technical data our hosts record automatically, such as IP address, device and browser type, and error logs", "To keep the service secure, find faults and prevent fraud."]]], ["p", "We use your information only for the reasons above. We do not sell your personal information, and we do not use it for advertising or to track you across other websites."], ["h", "2. Our legal bases"], ["p", "We use your information because (a) it is needed to carry out your orders and provide your account; (b) you gave consent, for example when you tick the box to accept these documents or choose Google sign-in; (c) the law requires it, for example tax and accounting records or a lawful request from the authorities; and (d) we have a legitimate interest in preventing fraud and keeping BODEGS safe. You can withdraw consent at any time (see section 7)."], ["h", "3. Who we share it with"], ["ul", ["Paystack, to take payments and make refunds.", "Supabase, which stores our database, files and login system and sends account emails.", "Google, if you choose Google sign-in.", "GitHub and similar services, which host and deliver the website files.", "The seller of your item, who sees your name, the items ordered and a partly hidden phone number, but not your address.", "BODEGS delivery partners, who receive only what they need to deliver: your name, phone number and address.", "Courts, the police, regulators or other authorities, when the law requires it or to protect people from harm.", "A buyer of the BODEGS business, if it is ever sold, under the same protections as this policy."]], ["p", "These providers only handle your information to do work for us and are expected to protect it."], ["h", "4. Where your information is kept"], ["p", "Our providers may keep data on servers outside Nigeria. When data is sent abroad, we use providers with proper security practices and take steps required by the Nigeria Data Protection Act 2023 to protect it."], ["h", "5. How long we keep it"], ["ul", ["While your account is open: your account and profile details.", "After you delete your account: we hold it for 30 days so you can restore it. Then your login and profile are removed.", "We then keep a limited record (name, contact details, delivery details and order history) for 1 year, locked away, to deal with fraud checks, payment disputes and lawful requests. After that it is deleted or anonymised.", "Financial records of transactions (amounts, dates, references, refunds; never card numbers) are kept for up to 6 years because tax and accounting rules require it.", "Records tied to an open dispute or a legal request are kept as long as the law or the case requires."]], ["h", "6. Cookies and information saved on your phone"], ["p", "BODEGS does not use advertising or tracking cookies and has no ad networks. We save a few small items in your browser storage so the app works: your sign-in session, your cart, saved delivery addresses, your Light or Dark choice, and your email if you tick “Remember me”. These stay on your device. You can clear them any time in your browser or phone settings, or in Manage Cookies in Settings; you may then need to sign in again. Third parties such as Paystack and Google may set their own cookies on their own screens, under their own policies."], ["h", "7. Your rights"], ["p", "Under the Nigeria Data Protection Act 2023 you may ask to: see the personal information we hold about you; correct it; delete it; limit or object to certain uses; receive a copy in a common format; and withdraw consent. You also have the right not to be subject to decisions made only by automated means that significantly affect you (we do not make such decisions). Write to bodegs.ng@gmail.com. We will reply within 30 days. We may need to keep some records after a deletion request for the reasons in section 5. If you are unhappy with how we handle your data, you can complain to the Nigeria Data Protection Commission (ndpc.gov.ng)."], ["h", "8. Children"], ["p", "BODEGS is for people aged 18 and over. We do not knowingly collect information from anyone under 18. If we find that we have, we will delete it."], ["h", "9. Security and breaches"], ["p", "We protect your information with encrypted connections, access controls and strict limits on who can see it. No system is perfectly secure. If a breach is likely to put you at risk, we will tell you and the Nigeria Data Protection Commission within the time the law requires."], ["h", "10. Changes to this policy"], ["p", "We may update this policy. The date at the top shows the latest version. For important changes we will tell you in the app or by email."]]};
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  var h = '<h1>' + esc(D.title) + '</h1><p class="upd">' + UPDATED + '</p>';
+  D.body.forEach(function (b) {
+    if (b[0] === "h") h += '<h2>' + esc(b[1]) + '</h2>';
+    else if (b[0] === "p") h += '<p>' + esc(b[1]) + '</p>';
+    else if (b[0] === "ul") h += '<ul>' + b[1].map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>';
+    else if (b[0] === "table") h += '<table><tr><th>' + esc(b[1][0][0]) + '</th><th>' + esc(b[1][0][1]) + '</th></tr>' + b[1].slice(1).map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>'; }).join("") + '</table>';
+  });
+  document.getElementById("doc").innerHTML = h;
+  document.getElementById("back").addEventListener("click", function () {
+    if (history.length > 1 && document.referrer) history.back(); else location.href = "index.html";
+  });
+})();
+</script>
+</body>
+</html>

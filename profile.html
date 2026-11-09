@@ -1388,11 +1388,11 @@
       }
 
       function termsSheet() {
-        location.href = "legal.html#terms";
+        location.href = "terms.html";
       }
 
       function privacySheet() {
-        location.href = "legal.html#privacy";
+        location.href = "privacy.html";
       }
 
       function aboutSheet() {
@@ -1510,8 +1510,8 @@
 
       document.getElementById("gearBtn").addEventListener("click", openSettings);
       if (location.hash === "#settings") showSettings();
-      if (location.hash === "#terms") location.replace("legal.html#terms");
-      if (location.hash === "#privacy") location.replace("legal.html#privacy");
+      if (location.hash === "#terms") location.replace("terms.html");
+      if (location.hash === "#privacy") location.replace("privacy.html");
       document.getElementById("stBack").addEventListener("click", closeSettings);
       document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && sheet.hidden && !settingsPage.hidden) closeSettings();

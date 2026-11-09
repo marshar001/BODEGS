@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms &amp; Conditions (Buyers) — BODEGS</title>
+<style>
+  :root { --brand:#173b32; --bg:#f5f0e7; --card:#faf7f1; --muted:#6f7f78; --line:rgba(23,59,50,.16); --pill:#173b32; --pillt:#fff; }
+  :root[data-theme="dark"] { --brand:#e8efe9; --bg:#121513; --card:#1b201d; --muted:#9aa8a1; --line:rgba(255,255,255,.12); --pill:#2f6a58; --pillt:#fff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; }
+  body { background:var(--bg); color:var(--brand); font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-text-size-adjust:100%; }
+  .top { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px 10px; }
+  .row { display:flex; align-items:center; gap:12px; max-width:720px; margin:0 auto; }
+  .back { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--brand); display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
+  .back svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .row b { font-family:Georgia,serif; font-size:20px; letter-spacing:.06em; }
+  main { max-width:720px; margin:0 auto; padding:20px 18px 60px; }
+  h1 { font-family:Georgia,serif; font-size:28px; line-height:1.15; margin:6px 0 4px; }
+  .upd { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  h2 { font-size:16.5px; margin:26px 0 6px; }
+  p, li { font-size:15px; line-height:1.65; margin:0 0 10px; }
+  ul { padding-left:20px; margin:0 0 10px; }
+  .note { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; font-size:14px; line-height:1.55; margin:0 0 14px; }
+  table { width:100%; border-collapse:collapse; margin:8px 0 14px; font-size:13.5px; }
+  th,td { text-align:left; vertical-align:top; padding:9px 8px; border-bottom:1px solid var(--line); line-height:1.45; }
+  th { font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  td:first-child { font-weight:600; width:34%; }
+  a { color:inherit; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="row">
+    <button class="back" id="back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <b>BODEGS</b>
+  </div>
+</div>
+<main id="doc"></main>
+<script>
+(function () {
+  var theme = "";
+  try { theme = localStorage.getItem("bodegsTheme") || ""; } catch (e) {}
+  if (theme === "dark" || (theme !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.setAttribute("data-theme", "dark");
+  var UPDATED = "Last updated: 9 November 2026";
+  var D = {"title": "Terms & Conditions (Buyers)", "body": [["p", "These terms are an agreement between you and BODEGS. By creating an account, signing in or placing an order, you confirm that you have read and accept them, together with our Buyer Privacy & Cookie Policy."], ["h", "1. Who we are"], ["p", "BODEGS is an online fashion marketplace based in Abuja, Nigeria. Independent sellers list items on BODEGS; BODEGS takes your payment, receives the item from the seller at the BODEGS central hub, inspects it, and arranges delivery to you. Contact: bodegs.ng@gmail.com or WhatsApp 08107771903."], ["h", "2. Your account"], ["ul", ["You must be 18 or older and give correct information.", "Keep your password private. You are responsible for everything done through your account.", "One person, one account. Do not use someone else’s account or let someone else use yours.", "We may suspend or close an account that breaks these terms, is used for fraud, or puts other users at risk."]], ["h", "3. How buying works"], ["ul", ["Prices are in Nigerian naira (₦). The price and any delivery cost are shown at checkout before you pay.", "Item photos and descriptions, including the condition (for example new or used), are written by sellers. We review and inspect items, but we cannot promise that every listing is perfect.", "An order is confirmed only after your payment succeeds. If a listing was wrong, sold out or unavailable, we will cancel the order and refund you in full.", "BODEGS may refuse or cancel an order we reasonably suspect is fraudulent or placed by mistake, and will refund any payment you made."]], ["h", "4. Payment"], ["p", "Payments are processed by Paystack. Your card or bank details are entered on Paystack’s secure screen; BODEGS never sees or stores your full card number, PIN or CVV. If your payment goes through but the page closes, the order is still confirmed automatically."], ["h", "5. Cancelling an order"], ["ul", ["Order not yet paid: you can cancel for free.", "Order already paid and not yet shipped: you can cancel. BODEGS keeps 10% of the order total to cover payment-processing costs and the work already done, and refunds the other 90% to your original payment method through Paystack. This is shown to you before you confirm.", "Order already marked shipped: it can no longer be cancelled. You may still report a problem (section 8).", "Refunds usually take 5 to 10 working days to show in your account, depending on your bank."]], ["h", "6. Delivery"], ["p", "Items go from the seller to the BODEGS central hub, where they are inspected, and then to you. Delivery times shown are estimates and can be affected by the seller, the hub, weather, traffic and delivery partners. Please give a complete address and a phone number that can receive calls. If delivery fails because the address or phone number was wrong or unreachable, extra delivery costs may be charged to you."], ["h", "7. Confirming that you received your order"], ["p", "When your item arrives, tap “I received it” in My Orders. If you do not, the order is treated as received 7 days after it was marked shipped. Once an order is confirmed as received, BODEGS pays the seller."], ["h", "8. Problems, returns and refunds"], ["ul", ["If an item is not as described, is damaged, is the wrong item or is counterfeit, contact us within 48 hours of receiving it (and before or instead of tapping “I received it” if you can), with clear photos and your order number.", "We will investigate with the seller. Depending on the facts, we will arrange a replacement, a repair, a return, or a full or partial refund.", "Items that arrive as described are not returnable only because you changed your mind, unless the listing says so.", "Nothing in these terms takes away rights you have under Nigerian consumer-protection law, including the Federal Competition and Consumer Protection Act 2018."]], ["h", "9. What you must not do"], ["ul", ["Use BODEGS for fraud, money laundering or any illegal purpose.", "Pay with a card or bank account that is not yours or that you are not allowed to use.", "Abuse, threaten or harass sellers, other buyers or BODEGS staff.", "Post false reviews, misuse refunds or the “I received it” button, or try to get around BODEGS payments or delivery.", "Interfere with, copy, scrape or attack the app, website or its security."]], ["h", "10. Deleting your account"], ["p", "You can delete your account in Settings. It is held for 30 days so you can restore it by signing in again; after that it is closed and your personal data is handled as described in the Privacy Policy. Open orders must be completed first."], ["h", "11. Our responsibility"], ["p", "We take reasonable care to run BODEGS properly, but it is provided “as is” and may sometimes be unavailable. To the extent the law allows, BODEGS is not responsible for losses that were not reasonably foreseeable, or for delays outside our control. Our total responsibility to you for any one order is limited to the amount you paid for that order. Nothing here limits responsibility that cannot be limited by law."], ["h", "12. Changes, disputes and law"], ["p", "We may update these terms. We will show the new date at the top, and for important changes we will tell you in the app or by email. Continuing to use BODEGS after a change means you accept it. If you have a complaint, write to bodegs.ng@gmail.com first and we will reply within 7 working days. These terms are governed by the laws of the Federal Republic of Nigeria, and disputes we cannot settle between us go to the courts of the Federal Capital Territory, Abuja."]]};
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  var h = '<h1>' + esc(D.title) + '</h1><p class="upd">' + UPDATED + '</p>';
+  D.body.forEach(function (b) {
+    if (b[0] === "h") h += '<h2>' + esc(b[1]) + '</h2>';
+    else if (b[0] === "p") h += '<p>' + esc(b[1]) + '</p>';
+    else if (b[0] === "ul") h += '<ul>' + b[1].map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>';
+    else if (b[0] === "table") h += '<table><tr><th>' + esc(b[1][0][0]) + '</th><th>' + esc(b[1][0][1]) + '</th></tr>' + b[1].slice(1).map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>'; }).join("") + '</table>';
+  });
+  document.getElementById("doc").innerHTML = h;
+  document.getElementById("back").addEventListener("click", function () {
+    if (history.length > 1 && document.referrer) history.back(); else location.href = "index.html";
+  });
+})();
+</script>
+</body>
+</html>

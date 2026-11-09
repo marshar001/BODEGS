@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seller Terms &amp; Conditions — BODEGS</title>
+<style>
+  :root { --brand:#173b32; --bg:#f5f0e7; --card:#faf7f1; --muted:#6f7f78; --line:rgba(23,59,50,.16); --pill:#173b32; --pillt:#fff; }
+  :root[data-theme="dark"] { --brand:#e8efe9; --bg:#121513; --card:#1b201d; --muted:#9aa8a1; --line:rgba(255,255,255,.12); --pill:#2f6a58; --pillt:#fff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; }
+  body { background:var(--bg); color:var(--brand); font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-text-size-adjust:100%; }
+  .top { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px 10px; }
+  .row { display:flex; align-items:center; gap:12px; max-width:720px; margin:0 auto; }
+  .back { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--brand); display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
+  .back svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .row b { font-family:Georgia,serif; font-size:20px; letter-spacing:.06em; }
+  main { max-width:720px; margin:0 auto; padding:20px 18px 60px; }
+  h1 { font-family:Georgia,serif; font-size:28px; line-height:1.15; margin:6px 0 4px; }
+  .upd { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  h2 { font-size:16.5px; margin:26px 0 6px; }
+  p, li { font-size:15px; line-height:1.65; margin:0 0 10px; }
+  ul { padding-left:20px; margin:0 0 10px; }
+  .note { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; font-size:14px; line-height:1.55; margin:0 0 14px; }
+  table { width:100%; border-collapse:collapse; margin:8px 0 14px; font-size:13.5px; }
+  th,td { text-align:left; vertical-align:top; padding:9px 8px; border-bottom:1px solid var(--line); line-height:1.45; }
+  th { font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  td:first-child { font-weight:600; width:34%; }
+  a { color:inherit; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="row">
+    <button class="back" id="back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <b>BODEGS</b>
+  </div>
+</div>
+<main id="doc"></main>
+<script>
+(function () {
+  var theme = "";
+  try { theme = localStorage.getItem("bodegsTheme") || ""; } catch (e) {}
+  if (theme === "dark" || (theme !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.setAttribute("data-theme", "dark");
+  var UPDATED = "Last updated: 9 November 2026";
+  var D = {"title": "Seller Terms & Conditions", "body": [["p", "These terms are an agreement between you (the seller, your boutique or business) and BODEGS. By applying to sell, signing in to your seller account or listing an item, you confirm that you have read and accept them, together with the Seller Privacy Policy and the Buyer Terms where they concern orders."], ["h", "1. Who can sell"], ["ul", ["You must be 18 or older and legally able to run a business in Nigeria.", "You must be a registered business, give your real name and boutique details, and provide a valid government ID, your CAC registration number and certificate, and proof of your shop or warehouse address.", "Everything you submit must be true and your documents genuine. Fake or altered documents lead to permanent removal and may be reported to the authorities.", "BODEGS may approve, refuse, pause or end any seller application or account, and may ask for more proof at any time."]], ["h", "2. Your listings"], ["ul", ["You may list only items you own and have the right to sell.", "Photos and descriptions must be accurate and show the real item. State the condition honestly (new or used) and mention any flaws, size and measurements.", "No counterfeit or fake-branded goods, stolen goods, or anything illegal. Items must be fashion items allowed on BODEGS; we may remove any listing we think is unsuitable.", "Keep your stock up to date. If you cannot supply an ordered item, tell BODEGS immediately; repeated failures can lead to suspension.", "You keep ownership of your photos and text, but you give BODEGS a free licence to show them in the app, website, and our promotion of the marketplace, for as long as the listing is live and a reasonable time after."]], ["h", "3. How an order works"], ["ul", ["When a buyer pays, you see the order in your seller page. Only paid orders appear.", "Pack the item well and send it to the BODEGS central hub in Abuja. You do not deliver to the buyer and you will not see the buyer’s address; BODEGS handles delivery.", "BODEGS inspects items at the hub. We may reject an item that is not as listed, is damaged, is counterfeit or is the wrong size or colour. In that case the buyer is refunded and no payment is made to you for that item. We may return the item to you, at your cost, or keep it for investigation if fraud is suspected.", "Mark the order shipped only once the item has actually been sent. Once an order is marked delivered you cannot change it back."]], ["h", "4. Commission and payouts"], ["ul", ["BODEGS charges a commission of 10% of the price of each item sold. The commission rate shown in your seller page applies; we will tell you before any change takes effect, and a change never applies to orders already placed.", "You are paid your sale price minus commission. BODEGS does not currently take any other fee from your payout. If this changes we will tell you first.", "Payouts are made weekly (Mondays) for orders that the buyer has confirmed as received, or that were automatically confirmed 7 days after being marked shipped, and that were not cancelled or refunded.", "Payouts go to the bank account you saved in Payments, by bank transfer through Paystack. The account name must match your boutique or your name as on your documents. You are responsible for entering the correct account number; we are not responsible for money sent to a wrong account you entered.", "If a payout fails, the amount is included in a later payout once the problem is fixed.", "If a buyer cancels after paying, you are not paid for that order and the item stays with you.", "If a buyer is refunded after you were paid because the item was not as described or was counterfeit, BODEGS may deduct that amount from your future payouts or ask you to repay it."]], ["h", "5. Your taxes and legal duties"], ["p", "You are responsible for your own taxes (including VAT and income or company tax where they apply), business registration and licences, and for following Nigerian law on selling goods. BODEGS may report seller earnings to the tax authorities when the law requires."], ["h", "6. Conduct"], ["ul", ["Treat buyers and BODEGS staff with respect.", "Do not contact buyers outside BODEGS to take orders or payments, or try to get around the BODEGS commission or delivery.", "Do not manipulate reviews, prices or stock, open duplicate boutiques to avoid a suspension, or misuse your seller access.", "Keep your seller password private. You are responsible for actions taken in your seller account."]], ["h", "7. Suspension and closing your account"], ["p", "BODEGS may remove listings, pause payouts during an investigation, suspend or close your account if you break these terms, receive repeated complaints or put buyers at risk. You may close your seller account at any time by writing to bodegs.ng@gmail.com. Orders already paid for must still be completed, and money you have earned and are owed will be paid out, less any amounts you owe BODEGS."], ["h", "8. Our responsibility and yours"], ["p", "BODEGS provides a marketplace and logistics service. We do not own the items you sell and are not the seller of them. To the extent the law allows, BODEGS is not responsible for lost profit or indirect loss, and our total responsibility to you for any order is limited to the amount payable to you for it. You agree to cover BODEGS’s losses and costs (including reasonable legal costs) arising from your false listings, counterfeit goods, breach of law or breach of these terms. Nothing here limits responsibility that cannot be limited by law."], ["h", "9. Changes, disputes and law"], ["p", "We may update these terms and will show the new date and tell you of important changes in your seller page or by email. Continuing to sell after a change means you accept it. Please raise any complaint with bodegs.ng@gmail.com first; we will reply within 7 working days. These terms are governed by the laws of the Federal Republic of Nigeria, and disputes we cannot settle go to the courts of the Federal Capital Territory, Abuja."]]};
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+  var h = '<h1>' + esc(D.title) + '</h1><p class="upd">' + UPDATED + '</p>';
+  D.body.forEach(function (b) {
+    if (b[0] === "h") h += '<h2>' + esc(b[1]) + '</h2>';
+    else if (b[0] === "p") h += '<p>' + esc(b[1]) + '</p>';
+    else if (b[0] === "ul") h += '<ul>' + b[1].map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>';
+    else if (b[0] === "table") h += '<table><tr><th>' + esc(b[1][0][0]) + '</th><th>' + esc(b[1][0][1]) + '</th></tr>' + b[1].slice(1).map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>'; }).join("") + '</table>';
+  });
+  document.getElementById("doc").innerHTML = h;
+  document.getElementById("back").addEventListener("click", function () {
+    if (history.length > 1 && document.referrer) history.back(); else location.href = "seller.html";
+  });
+})();
+</script>
+</body>
+</html>
