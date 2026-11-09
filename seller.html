@@ -191,6 +191,9 @@
     .order .buyer { margin-top: 8px; padding-top: 8px; font-size: 12.5px; line-height: 1.35; display: flex; flex-wrap: wrap; gap: 2px 10px; }
     .order .buyer b { display: inline; margin: 0; }
     .order .buyer p { margin: 0; }
+    .order .buyer .hub { flex-basis: 100%; display: flex; flex-direction: column; gap: 1px; background: var(--cream); border-radius: 10px; padding: 7px 10px; margin-top: 4px; }
+    .order .buyer .hub b { font-size: 12.5px; }
+    .order .buyer .hub span { font-size: 12px; color: var(--muted); }
     .order .btn { margin-top: 8px; padding: 9px; font-size: 13px; border-radius: 10px; }
     .chip2 { font-size: 10.5px; padding: 3px 8px; white-space: nowrap; }
 
@@ -216,6 +219,12 @@
     .setbody { max-width: 640px; margin: 0 auto; padding: 14px; }
     .setrow { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; }
     .setrow:first-child { border-top: 0; }
+    button.setrow { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); font-family: inherit; cursor: pointer; text-align: left; }
+    button.setrow:first-child { border-top: 0; }
+    .docov { z-index: 80; }
+    .doc h3 { margin: 18px 0 6px; font-size: 16px; }
+    .doc p { margin: 0 0 8px; font-size: 14.5px; line-height: 1.55; }
+    .doc .draft { font-size: 12.5px; color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
     .setrow span { color: var(--muted); font-size: 20px; }
 
     .snav { display: block; padding: 0; }
@@ -269,6 +278,12 @@
     <!-- Store -->
     <div id="viewProfile" hidden>
       <div class="panel" id="storePanel"></div>
+      <a class="btn primary" id="storeOpen" href="#">View store</a>
+    </div>
+
+    <div class="setov docov" id="docOverlay" hidden>
+      <div class="setbar"><button type="button" id="docClose" aria-label="Back">&larr;</button><h2 id="docTitle"></h2></div>
+      <div class="setbody doc" id="docBody"></div>
     </div>
 
     <div class="setov" id="setOverlay" hidden>
@@ -277,8 +292,8 @@
         <div class="panel" id="settingsPanel"></div>
         <div class="panel" id="lookPanel"></div>
         <div class="panel">
-          <a class="setrow" href="profile.html#terms">Terms &amp; Conditions <span>&rsaquo;</span></a>
-          <a class="setrow" href="profile.html#privacy">Privacy &amp; Cookie Policy <span>&rsaquo;</span></a>
+          <button type="button" class="setrow" id="openTerms">Seller Terms &amp; Conditions <span>&rsaquo;</span></button>
+          <button type="button" class="setrow" id="openPrivacy">Seller Privacy Policy <span>&rsaquo;</span></button>
         </div>
         <button type="button" class="btn ghost" id="storeCopy">Copy store link</button>
         <button type="button" class="btn ghost" id="logoutBtn" style="margin-top:10px">Log out of seller account</button>
@@ -813,6 +828,23 @@
     renderAll();
   }
 
+  // Sellers never see the buyer's address: items go to the BODEGS central hub first.
+  let hubInfo = { name: "BODEGS central hub", address: "" };
+  async function loadHub() {
+    try {
+      const r = await sb.rpc("get_hub");
+      const row = r && !r.error && Array.isArray(r.data) ? r.data[0] : (r && r.data);
+      if (row && row.name) hubInfo = { name: row.name, address: row.address || "" };
+    } catch (e) {}
+  }
+
+  // BODEGS handles delivery, so sellers only see part of the buyer's number.
+  function maskPhone(v) {
+    const d = String(v).replace(/\s+/g, "");
+    if (d.length < 8) return "****";
+    return d.slice(0, 4) + "****" + d.slice(-2);
+  }
+
   function orderCard(o) {
     const card = el("article", "order");
 
@@ -849,13 +881,12 @@
     const buyer = el("div", "buyer");
     buyer.appendChild(el("b", "", o.buyer_name || "Buyer"));
     if (o.buyer_phone) {
-      const a = el("a", "", o.buyer_phone);
-      a.href = "tel:" + String(o.buyer_phone).replace(/[^\d+]/g, "");
-      const phoneLine = el("p");
-      phoneLine.appendChild(a);
-      buyer.appendChild(phoneLine);
+      buyer.appendChild(el("p", "", maskPhone(o.buyer_phone)));
     }
-    if (o.delivery_address) buyer.appendChild(el("p", "", o.delivery_address));
+    const hub = el("p", "hub");
+    hub.appendChild(el("b", "", "Send to " + hubInfo.name));
+    if (hubInfo.address) hub.appendChild(el("span", "", hubInfo.address));
+    buyer.appendChild(hub);
     card.appendChild(buyer);
 
     if (o.order_status !== "cancelled" && !o.delivered_at) {
@@ -925,6 +956,7 @@
     const gear = el("button", "gear");
     gear.type = "button"; gear.setAttribute("aria-label", "Settings");
     gear.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"></circle><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.9-1.5-1.9-3.3-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.1 2.6h-3.8l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-1.9 3.3 1.9 1.5a7.6 7.6 0 0 0 0 3l-1.9 1.5 1.9 3.3 2.3-.9c.8.6 1.6 1.1 2.6 1.5l.4 2.5h3.8l.4-2.5c1-.4 1.8-.9 2.6-1.5l2.3.9 1.9-3.3-1.9-1.5Z"></path></svg>';
+    $("storeOpen").href = "store.html?id=" + encodeURIComponent(seller.id);
     gear.addEventListener("click", openSettings);
     id.appendChild(gear);
     panel.appendChild(id);
@@ -943,8 +975,65 @@
     if (!$("lookPanel").childNodes.length) renderLook();
   }
 
-  function openSettings() { $("setOverlay").hidden = false; document.body.style.overflow = "hidden"; $("setOverlay").scrollTop = 0; }
-  function closeSettings() { $("setOverlay").hidden = true; document.body.style.overflow = ""; }
+  function openSettings() {
+    $("setOverlay").hidden = false; document.body.style.overflow = "hidden"; $("setOverlay").scrollTop = 0;
+    try { sessionStorage.setItem("sellerSetOpen", "1"); } catch (e) {}
+  }
+  function closeSettings() {
+    $("setOverlay").hidden = true; document.body.style.overflow = "";
+    try { sessionStorage.removeItem("sellerSetOpen"); } catch (e) {}
+  }
+
+  const SELLER_TERMS = [
+    ["draft", "Draft: these terms are pending review by a Nigerian lawyer before BODEGS opens to the public."],
+    ["h", "1. Who can sell"],
+    ["p", "BODEGS is open to verified businesses and individuals. You must give correct details, keep them up to date, and provide the documents we ask for (such as a government ID and business registration). We may refuse or remove a seller who cannot be verified."],
+    ["h", "2. Your listings"],
+    ["p", "List only genuine items you have the right to sell. Photos, descriptions, sizes, colours and prices must be honest, and the stock you show must be real. Counterfeit, stolen or illegal goods are never allowed."],
+    ["h", "3. Orders and shipping"],
+    ["p", "You only see orders that have been paid for. Mark an order as Shipped when it is packed and on its way to the BODEGS central hub. Do not mark an item shipped before it is ready. You cannot undo Shipped once the buyer has confirmed receipt."],
+    ["h", "4. Logistics"],
+    ["p", "Sellers do not deliver to buyers. Send every paid order to the BODEGS central hub, where the product is reviewed and inspected and delivery is arranged. For the buyer's privacy, sellers never see the buyer's address and only see part of their phone number, and must not contact buyers directly, take payment outside BODEGS, or try to sell to them off the app."],
+    ["h", "5. Commission and payouts"],
+    ["p", "BODEGS keeps a commission on each sale (currently 10% of the item price). The rest is paid to the bank account saved in your Payments tab every Monday, for items the buyer has confirmed received, or that are treated as received 7 days after shipping. The account name must match your business or your own name. Payouts may be delayed or held while a complaint, fraud check or legal request is being handled."],
+    ["h", "6. Cancellations, returns and refunds"],
+    ["p", "If a buyer cancels a paid order before delivery, no payout is made for it. If an item is not as described, is damaged or is the wrong item, BODEGS may refund the buyer and deduct that amount from your payouts. Repeated problems can lead to suspension."],
+    ["h", "7. What you must not do"],
+    ["p", "Do not create fake orders or reviews, manipulate prices or stock, harass buyers or other sellers, share buyers' details, or use BODEGS for fraud."],
+    ["h", "8. Suspension and closing your store"],
+    ["p", "BODEGS may hide listings, hold payouts, suspend or close a store that breaks these terms or the law. You may close your store at any time; completed and paid orders are still settled, subject to any holds."],
+    ["h", "9. Changes and governing law"],
+    ["p", "We may update these terms and will show the new date. Using BODEGS after a change means you accept it. These terms are governed by the laws of the Federal Republic of Nigeria."],
+    ["p", "Questions: bodegs.ng@gmail.com or WhatsApp 08107771903."]
+  ];
+  const SELLER_PRIVACY = [
+    ["draft", "Draft: this policy is pending review by a Nigerian lawyer before BODEGS opens to the public."],
+    ["h", "1. What we collect from sellers"],
+    ["p", "Your store name, city, address and category; your name, phone and email; verification documents and ID; your payout bank account (bank, account name and number, confirmed through Paystack); and your products, orders, sales and payout records."],
+    ["h", "2. Why we use it"],
+    ["p", "To verify and run your store, show your products to buyers, process orders and deliveries, pay you, prevent fraud and meet legal duties."],
+    ["h", "3. Who sees it"],
+    ["p", "Buyers see your store name, products and city. BODEGS staff review your verification documents. Paystack receives your bank details to send payouts. Our hosting and sign-in providers (Supabase, Google, GitHub) process data for us. We share information with law enforcement or regulators only when the law requires it."],
+    ["h", "4. Buyers' information"],
+    ["p", "You see only the buyer's name and a partly hidden phone number. You never see the buyer's address, because your items go to the BODEGS central hub and BODEGS handles delivery. Do not copy, store or share buyers' details."],
+    ["h", "5. How long we keep it"],
+    ["p", "While your store is open. If you delete your account, it is held for 30 days so you can restore it, then closed. Limited contact, order and payout records are then kept locked for 1 year for fraud prevention, disputes and legal requests, and deleted or anonymised after that."],
+    ["h", "6. Your rights"],
+    ["p", "You can ask to see, correct or delete your data, or complain to the Nigeria Data Protection Commission. Write to bodegs.ng@gmail.com. Some records must be kept for the reasons above."],
+    ["h", "7. Local storage"],
+    ["p", "This page uses small files on your phone to keep you signed in and remember your theme. It does not use advertising cookies."]
+  ];
+  function openDoc(title, parts) {
+    $("docTitle").textContent = title;
+    const body = $("docBody");
+    body.textContent = "";
+    parts.forEach((x) => body.appendChild(el(x[0] === "h" ? "h3" : "p", x[0] === "draft" ? "draft" : "", x[1])));
+    $("docOverlay").hidden = false;
+    $("docOverlay").scrollTop = 0;
+  }
+  $("openTerms").addEventListener("click", () => openDoc("Seller Terms & Conditions", SELLER_TERMS));
+  $("openPrivacy").addEventListener("click", () => openDoc("Seller Privacy Policy", SELLER_PRIVACY));
+  $("docClose").addEventListener("click", () => { $("docOverlay").hidden = true; });
   $("setClose").addEventListener("click", closeSettings);
 
   function renderLook() {
@@ -1432,7 +1521,10 @@
     $("shopName").textContent = seller.boutique_name;
     $("shopLogo").textContent = (seller.boutique_name || "B").trim().charAt(0).toUpperCase() || "B";
     document.title = seller.boutique_name + " — BODEGS Seller";
-    if (await loadProducts()) { await loadOrders(); await loadBank(); await loadMoney(); renderList(); }
+    if (await loadProducts()) { await loadOrders(); await loadBank(); await loadMoney(); await loadHub(); renderAll(); renderList(); }
+    let wasOpen = false;
+    try { wasOpen = sessionStorage.getItem("sellerSetOpen") === "1"; } catch (e) {}
+    if (wasOpen && seller) { showView("profile"); openSettings(); }
   })();
 </script>
 </body>
