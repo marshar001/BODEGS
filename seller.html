@@ -1,79 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="dark.js?v=3"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
   <title>Seller Dashboard — BODEGS</title>
   <style>
-    :root { --green:#263B50; --cream:#eef1f5; --card:#ffffff; --line:rgba(38,59,80,.16); --muted:#6c756f; --red:#873b32; --amber:#795516; }
+    :root { --green:#263B50; --cream:#eef1f5; --card:#ffffff; --line:rgba(38,59,80,.16); --muted:#66727f; --red:#a3392f; --amber:#795516; --ink:#1b1b1b; }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    body { margin: 0; background: var(--cream); color: #1b2b26; font-family: Roboto, "Segoe UI", Arial, sans-serif; padding-bottom: 120px; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font-family: Roboto, "Segoe UI", Arial, sans-serif; padding-bottom: 120px; }
 
-    header.hero { background: linear-gradient(160deg, #263B50 0%, #3b5873 100%); color: #fff; padding: 22px 16px 34px; border-radius: 0 0 28px 28px; box-shadow: 0 10px 30px rgba(38,59,80,.28); }
-    header .row { max-width: 640px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    header .row a { color: #fff; opacity: .9; font-size: 14px; text-decoration: none; flex: none; font-weight: 600; }
-    header .id { max-width: 640px; margin: 6px auto 0; display: flex; align-items: center; gap: 14px; }
-    header .logo { flex: none; width: 58px; height: 58px; border-radius: 18px; background: var(--cream); color: var(--green); display: flex; align-items: center; justify-content: center; font: 700 26px Roboto, "Segoe UI", Arial, sans-serif; }
-    header .eyebrow { margin: 0 0 3px; font-size: 11px; letter-spacing: .12em; opacity: .75; }
-    header h1 { margin: 0; font-family: Roboto, "Segoe UI", Arial, sans-serif; font-size: 23px; line-height: 1.15; overflow-wrap: anywhere; }
+    header.topbar { position: sticky; top: 0; z-index: 40; background: var(--cream); border-bottom: 1px solid var(--line); }
+    .tb-in { max-width: 640px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .tb-in .logo { flex: none; width: 42px; height: 42px; border-radius: 14px; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font: 700 19px Roboto, "Segoe UI", Arial, sans-serif; }
+    .tb-text { min-width: 0; flex: 1; }
+    .tb-in .eyebrow { margin: 0 0 1px; font-size: 10.5px; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
+    .tb-in h1 { margin: 0; font: 700 18px/1.2 Roboto, "Segoe UI", Arial, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tb-link { flex: none; font-size: 13px; font-weight: 700; color: var(--green); text-decoration: none; border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px; }
 
     .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: -22px 0 14px; }
-    .stat { background: #fff; border-radius: 16px; padding: 12px 8px; text-align: center; box-shadow: 0 3px 12px rgba(38,59,80,.08); }
+    .stat { background: var(--card); border-radius: 16px; padding: 12px 8px; text-align: center; box-shadow: 0 3px 12px rgba(38,59,80,.08); }
     .stat b { display: block; font: 700 22px Roboto, "Segoe UI", Arial, sans-serif; color: var(--green); }
     .stat span { font-size: 12px; color: var(--muted); }
 
-    .tabs { display: flex; background: #e1e7ee; border-radius: 14px; padding: 4px; margin-bottom: 14px; }
+    .tabs { display: flex; background: #e2e7ee; border-radius: 14px; padding: 4px; margin-bottom: 14px; }
     .tabs button { flex: 1; border: 0; background: transparent; padding: 11px 6px; border-radius: 11px; font-size: 14px; font-weight: 700; font-family: inherit; color: var(--muted); cursor: pointer; }
-    .tabs button.active { background: #fff; color: var(--green); box-shadow: 0 2px 8px rgba(38,59,80,.1); }
+    .tabs button.active { background: var(--card); color: var(--green); box-shadow: 0 2px 8px rgba(38,59,80,.1); }
     .tabs .count { display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 4px; border-radius: 999px; background: #c2410c; color: #fff; font-size: 12px; }
 
-    .order { background: #fff; border-radius: 18px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(38,59,80,.06); }
+    .order { background: var(--card); border-radius: 18px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(38,59,80,.06); }
     .order .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
     .chip2 { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
     .chip2.todo { background: #fdebe6; color: #c2410c; }
     .chip2.done { background: #d9ecd9; color: #1f5a2c; }
-    .chip2.cancel { background: #ece7da; color: var(--amber); }
+    .chip2.cancel { background: #e4e9f0; color: var(--amber); }
     .order .line { display: flex; gap: 12px; }
-    .order .pic { flex: none; width: 64px; height: 80px; border-radius: 12px; overflow: hidden; background: #e8e3d8; }
+    .order .pic { flex: none; width: 64px; height: 80px; border-radius: 12px; overflow: hidden; background: #e2e7ee; }
     .order .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .order h3 { margin: 0 0 4px; font: 700 16px Roboto, "Segoe UI", Arial, sans-serif; overflow-wrap: anywhere; }
     .order .opts { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
-    .order .opts span { padding: 3px 9px; border-radius: 8px; background: #e1e7ee; font-size: 12.5px; font-weight: 600; }
+    .order .opts span { padding: 3px 9px; border-radius: 8px; background: #e2e7ee; font-size: 12.5px; font-weight: 600; }
     .order .sum { margin: 0; font-size: 14px; }
     .order .buyer { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.45; }
     .order .buyer b { display: block; margin-bottom: 2px; }
     .order .buyer a { color: var(--green); font-weight: 700; }
-    .order .buyer p { margin: 2px 0 0; white-space: pre-line; overflow-wrap: anywhere; color: #3d4a44; }
+    .order .buyer p { margin: 2px 0 0; white-space: pre-line; overflow-wrap: anywhere; color: #4a5560; }
     .order .btn { margin-top: 12px; padding: 12px; font-size: 14px; border-radius: 12px; }
 
-    main { max-width: 640px; margin: 0 auto; padding: 16px 14px; }
+    main { max-width: 640px; margin: 0 auto; padding: 14px 14px; }
     .notice { padding: 36px 16px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.55; }
     .notice a { color: var(--green); font-weight: 600; }
 
     .btn { display: block; width: 100%; border: 0; border-radius: 14px; padding: 15px; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; text-align: center; text-decoration: none; }
     .btn.primary { background: var(--green); color: #fff; }
-    .btn.ghost { background: #fff; color: var(--green); border: 1.5px solid var(--line); }
+    .btn.ghost { background: var(--card); color: var(--green); border: 1.5px solid var(--line); }
     .btn:disabled { opacity: .55; }
 
     .summary { display: flex; justify-content: space-between; align-items: baseline; margin: 4px 2px 12px; color: var(--muted); font-size: 14px; }
-    .summary strong { color: #1b2b26; font-size: 16px; }
+    .summary strong { color: var(--ink); font-size: 16px; }
 
     .item { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px; margin-top: 12px; }
     .item-main { display: flex; gap: 12px; }
-    .thumb { flex: none; width: 84px; height: 104px; border-radius: 12px; background: #e8e3d8; overflow: hidden; }
+    .thumb { flex: none; width: 84px; height: 104px; border-radius: 12px; background: #e2e7ee; overflow: hidden; }
     .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .info { min-width: 0; flex: 1; }
     .info h3 { margin: 0 0 4px; font-family: Roboto, "Segoe UI", Arial, sans-serif; font-size: 17px; overflow-wrap: anywhere; }
     .price { font-weight: 700; margin: 0 0 4px; }
     .meta { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
     .badge { display: inline-block; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 700; background: #d9ecd9; color: #1f5a2c; }
-    .badge.off { background: #ece7da; color: var(--amber); }
+    .badge.off { background: #e4e9f0; color: var(--amber); }
     .badge.out { background: #f3d8d5; color: var(--red); margin-left: 6px; }
     .item-actions { display: flex; gap: 8px; margin-top: 12px; }
     .item-actions .btn { padding: 11px 6px; font-size: 14px; border-radius: 12px; }
-    .btn.danger { background: #fff; color: var(--red); border: 1.5px solid rgba(135,59,50,.35); }
+    .btn.danger { background: var(--card); color: var(--red); border: 1.5px solid rgba(135,59,50,.35); }
 
     .linkback { background: none; border: 0; padding: 6px 2px 12px; font: inherit; font-size: 15px; color: var(--green); font-weight: 600; cursor: pointer; }
     form { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 16px; }
@@ -82,28 +83,28 @@
     .lbl { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
     .opt { font-weight: 400; color: var(--muted); }
     .help { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
-    input[type=text], input[type=number], select, textarea { width: 100%; padding: 13px 14px; font-size: 16px; font-family: inherit; color: #1b2b26; background: #fff; border: 1.5px solid var(--line); border-radius: 12px; outline: none; }
+    input[type=text], input[type=number], select, textarea { width: 100%; padding: 13px 14px; font-size: 16px; font-family: inherit; color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; outline: none; }
     input:focus, select:focus, textarea:focus { border-color: var(--green); }
     textarea { min-height: 110px; resize: vertical; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
     .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .photo, .addtile { position: relative; aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: #e8e3d8; }
+    .photo, .addtile { position: relative; aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: #e2e7ee; }
     .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .photo .x { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(0,0,0,.65); color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
     .photo .tag { position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 4px; font-size: 11px; font-weight: 700; text-align: center; background: rgba(38,59,80,.88); color: #fff; }
     .photo button.tag { border: 0; font-family: inherit; cursor: pointer; background: rgba(255,255,255,.9); color: var(--green); }
-    .addtile { display: grid; place-items: center; border: 1.5px dashed #b9b3a3; background: #faf8f2; color: var(--green); font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; padding: 6px; }
+    .addtile { display: grid; place-items: center; border: 1.5px dashed #b3bfcd; background: #f6f8fb; color: var(--green); font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; padding: 6px; }
     .addtile .plus { display: block; font-size: 26px; line-height: 1; margin-bottom: 4px; }
     .addtile.busy { opacity: .6; pointer-events: none; }
     .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-    .chip { border: 1.5px solid var(--line); background: #fff; color: #1b2b26; border-radius: 999px; padding: 9px 15px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; }
+    .chip { border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 9px 15px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; }
     .chip.on { background: var(--green); border-color: var(--green); color: #fff; }
     .chip .dot { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 7px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.25); }
     .cphoto-row { margin-top: 12px; }
     .cphoto-row .cname { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
     .cphoto-row .tiny { display: flex; gap: 8px; overflow-x: auto; padding: 2px; }
-    .cphoto-row .tiny button { flex: none; width: 46px; height: 58px; padding: 0; border: 2px solid transparent; border-radius: 9px; overflow: hidden; background: #e8e3d8; cursor: pointer; }
+    .cphoto-row .tiny button { flex: none; width: 46px; height: 58px; padding: 0; border: 2px solid transparent; border-radius: 9px; overflow: hidden; background: #e2e7ee; cursor: pointer; }
     .cphoto-row .tiny button.on { border-color: var(--green); }
     .cphoto-row .tiny img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .vh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
@@ -115,20 +116,23 @@
     .cur { font-size: .62em; font-weight: 700; margin-right: 1px; vertical-align: .12em; }
 
     /* ---------- bottom navigation (seller) ---------- */
-    .snav { position: fixed; left: 12px; right: 12px; bottom: 12px; max-width: 616px; margin: 0 auto; z-index: 50; display: flex; justify-content: space-between; padding: 7px 6px calc(7px + env(safe-area-inset-bottom)); background: rgba(38,59,80,.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-radius: 26px; box-shadow: 0 10px 30px rgba(38,59,80,.40), 0 2px 8px rgba(38,59,80,.25); }
-    .snav button { position: relative; flex: 1; border: 0; background: transparent; color: rgba(255,255,255,.65); padding: 6px 0 5px; border-radius: 18px; font-family: inherit; font-size: 10px; font-weight: 600; line-height: 1.2; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .snav { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: 520px; height: 64px; margin: 0 auto; z-index: 50; display: flex; justify-content: space-between; align-items: center; padding: 0 6px; background: #263B50; border-radius: 26px; box-shadow: 0 12px 30px rgba(0,0,0,.18); }
+    .snav button { position: relative; flex: 1; border: 0; background: transparent; color: rgba(255,255,255,.65); padding: 8px 0 7px; border-radius: 18px; font-family: inherit; font-size: 10px; font-weight: 600; line-height: 1.2; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    [data-theme="dark"] .snav { background: #34475c; }
+    .bt { background: #e2e7ee !important; }
+    [data-theme="dark"] .bt { background: #232323 !important; }
     .snav button span { font-size: 10px; }
     .snav button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .snav button.active { background: rgba(255,255,255,.16); color: #fff; }
+    .snav button.active { background: rgba(255,255,255,.18); color: #fff; }
     .snav .dot { position: absolute; top: 2px; right: 50%; margin-right: -22px; min-width: 18px; padding: 1px 5px; border-radius: 999px; background: #e8590c; color: #fff; font-size: 11px; font-weight: 700; }
 
     .seg { display: flex; gap: 8px; margin: 0 0 14px; overflow-x: auto; scrollbar-width: none; }
     .seg::-webkit-scrollbar { display: none; }
-    .seg button { flex: none; border: 1.5px solid var(--line); background: #fff; color: var(--green); border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .seg button { flex: none; border: 1.5px solid var(--line); background: var(--card); color: var(--green); border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; }
     .seg button.active { background: var(--green); border-color: var(--green); color: #fff; }
 
     .hello { margin: 4px 2px 12px; font: 700 18px Roboto, "Segoe UI", Arial, sans-serif; }
-    .panel { background: #fff; border-radius: 18px; padding: 16px; margin-bottom: 14px; box-shadow: 0 6px 22px rgba(38,59,80,.13); }
+    .panel { background: var(--card); border-radius: 18px; padding: 16px; margin-bottom: 14px; box-shadow: 0 6px 22px rgba(38,59,80,.13); }
     .panel h2 { margin: 0 0 10px; font: 700 17px Roboto, "Segoe UI", Arial, sans-serif; }
     .panel .row2x { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; }
     .panel .row2x:first-of-type { border-top: 0; }
@@ -139,15 +143,16 @@
     .sectitle { display: flex; justify-content: space-between; align-items: center; margin: 16px 2px 10px; font: 700 17px Roboto, "Segoe UI", Arial, sans-serif; }
     .sectitle button { border: 0; background: none; color: var(--green); font: 700 14px inherit; font-family: inherit; cursor: pointer; }
 
-    .money { background: linear-gradient(160deg, #263B50 0%, #3b5873 100%); color: #fff; border-radius: 22px; padding: 18px; margin-bottom: 14px; }
+    .money { background: #263B50; color: #fff; border-radius: 22px; padding: 18px; margin-bottom: 14px; }
     .money small { opacity: .75; font-size: 13px; }
     .money .big { display: block; margin: 4px 0 14px; font: 700 32px Roboto, "Segoe UI", Arial, sans-serif; }
     .money .trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .money .trio div { background: rgba(255,255,255,.12); border-radius: 14px; padding: 10px 8px; }
     .money .trio b { display: block; font-size: 15px; margin-top: 3px; overflow-wrap: anywhere; }
     .money .trio span { font-size: 11.5px; opacity: .8; }
+    .money .mnote { margin: 12px 0 0; font-size: 12px; opacity: .78; line-height: 1.4; }
     .money .btn { margin-top: 14px; background: rgba(255,255,255,.18); color: #fff; }
-    .tx { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 5px 18px rgba(38,59,80,.12); }
+    .tx { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 5px 18px rgba(38,59,80,.12); }
     .tx .t { flex: 1; min-width: 0; }
     .tx .t b { display: block; font-size: 14.5px; overflow-wrap: anywhere; }
     .tx .t span { font-size: 12.5px; color: var(--muted); }
@@ -159,19 +164,20 @@
     .store-id { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
     .store-id .logo { flex: none; width: 56px; height: 56px; border-radius: 18px; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font: 700 24px Roboto, "Segoe UI", Arial, sans-serif; }
     .store-id h2 { margin: 0; }
-    #toast { position: fixed; left: 14px; right: 14px; bottom: 110px; max-width: 440px; margin: 0 auto; padding: 13px 15px; border-radius: 12px; font-size: 14px; background: #14212e; color: #fff; z-index: 60; }
+    #toast { position: fixed; left: 14px; right: 14px; bottom: 100px; max-width: 440px; margin: 0 auto; padding: 13px 15px; border-radius: 12px; font-size: 14px; background: #1b1b1b; color: #fff; z-index: 60; }
     #toast.err { background: var(--red); }
   </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="id">
+<header class="topbar">
+  <div class="tb-in">
     <div class="logo" id="shopLogo">B</div>
-    <div>
+    <div class="tb-text">
       <p class="eyebrow">BODEGS SELLER</p>
-      <h1 id="shopName">My products</h1>
+      <h1 id="shopName">My store</h1>
     </div>
+    <a class="tb-link" id="tbStore" href="#">View store</a>
   </div>
 </header>
 
@@ -182,7 +188,6 @@
 
     <!-- Dashboard -->
     <div id="viewDashboard">
-      <p class="hello" id="hello">Welcome back</p>
       <div class="grid2" id="stats"></div>
       <div class="money" id="miniMoney"></div>
       <button type="button" class="btn primary" id="dashAdd">+ Add a product</button>
@@ -206,6 +211,8 @@
     <!-- Store -->
     <div id="viewProfile" hidden>
       <div class="panel" id="storePanel"></div>
+      <div class="panel" id="settingsPanel"></div>
+      <div class="panel" id="lookPanel"></div>
       <a class="btn primary" id="storeOpen" href="#">View my store</a>
       <button type="button" class="btn ghost" id="storeCopy" style="margin-top:10px">Copy store link</button>
       <button type="button" class="btn ghost" id="logoutBtn" style="margin-top:10px">Log out of seller account</button>
@@ -218,10 +225,10 @@
       <div class="money" id="payMoney"></div>
       <div class="seg" id="paySeg"></div>
       <div id="payList"></div>
-      <p class="foot">Amounts are sale prices before any BODEGS fees. Withdrawals, payouts and failed payments will show here once payments are connected.</p>
+      <p class="foot">Amounts shown are what you receive after the BODEGS commission. Payouts go to the bank account above.</p>
     </div>
 
-    <nav class="snav" id="snav" aria-label="Seller navigation">
+    <nav class="snav dk-skip" id="snav" aria-label="Seller navigation">
       <button type="button" data-view="dashboard" class="active"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect></svg><span>Dashboard</span></button>
       <button type="button" data-view="products"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12.5 12 21l-8.5-8.5V4h8.5l8.5 8.5Z"></path><circle cx="8" cy="8" r="1.4"></circle></svg><span>Products</span></button>
       <button type="button" data-view="orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h12A1.5 1.5 0 0 1 19.5 5v14A1.5 1.5 0 0 1 18 20.5H6A1.5 1.5 0 0 1 4.5 19V5A1.5 1.5 0 0 1 6 3.5Z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg><span>Orders</span><i class="dot" id="ordersCount" hidden>0</i></button>
@@ -538,32 +545,47 @@
     badge.hidden = !n;
   }
 
-  /* money numbers: earnings = shipped lines, pending = lines still to ship */
+  /* money: BODEGS pays sellers weekly for items the buyer confirmed as received, minus commission */
+  let commissionPct = 10;
+  let payouts = [];
+  const rnd = (n) => Math.round(n);
+  const netOf = (o) => rnd(lineTotal(o) * (1 - commissionPct / 100));
+  const liveLines = () => ok() ? orders.filter((o) => o.order_status !== "cancelled") : [];
+  const sumNet = (list) => list.reduce((t, o) => t + netOf(o), 0);
+  const sumPay = (st) => payouts.filter((x) => x.status === st).reduce((t, x) => t + Number(x.amount), 0);
+
   function moneyFigures() {
-    const earned = ok() ? sumOf(orders.filter(isShipped)) : 0;
-    const pending = ok() ? sumOf(orders.filter(isOpen)) : 0;
-    return { earned: earned, pending: pending, withdrawn: 0 };
+    const live = liveLines();
+    return {
+      ready: sumNet(live.filter((o) => o.delivered_at && !o.payout_id)),
+      pending: sumNet(live.filter((o) => !o.delivered_at)),
+      sending: sumPay("processing"),
+      paid: sumPay("paid")
+    };
   }
 
-  function fillMoney(box, withButton) {
+  async function loadMoney() {
+    try { const r = await sb.rpc("get_commission"); if (r && !r.error && r.data != null) commissionPct = Number(r.data); } catch (e) {}
+    try {
+      const r = await sb.from("seller_payouts").select("id, amount, gross, commission, status, failure, created_at").order("created_at", { ascending: false });
+      payouts = (r && r.data) || [];
+    } catch (e) { payouts = []; }
+  }
+
+  function fillMoney(box) {
     const m = moneyFigures();
     box.textContent = "";
-    box.appendChild(el("small", "", "Estimated earnings"));
-    box.appendChild(el("span", "big", naira(m.earned)));
+    box.appendChild(el("small", "", "Ready for your next payout"));
+    box.appendChild(el("span", "big", naira(m.ready)));
     const trio = el("div", "trio");
-    [[naira(m.pending), "Pending"], [naira(m.withdrawn), "Withdrawn"], [naira(m.earned - m.withdrawn), "Available"]].forEach((x) => {
+    [[naira(m.pending), "Waiting for delivery"], [naira(m.sending), "Being sent"], [naira(m.paid), "Paid out"]].forEach((x) => {
       const d = el("div");
       d.appendChild(el("span", "", x[1]));
       d.appendChild(el("b", "", x[0]));
       trio.appendChild(d);
     });
     box.appendChild(trio);
-    if (withButton) {
-      const b = el("button", "btn", "Withdraw — available after payment setup");
-      b.type = "button";
-      b.disabled = true;
-      box.appendChild(b);
-    }
+    box.appendChild(el("p", "mnote", "Paid every Monday for items buyers have received. You get " + (100 - commissionPct) + "% of each sale."));
   }
 
   function txRow(title, sub, amount, cls) {
@@ -666,10 +688,11 @@
 
   function renderPayments() {
     if (!$("bankPanel").childNodes.length) renderBank(false);
-    fillMoney($("payMoney"), true);
+    fillMoney($("payMoney"));
     const seg = $("paySeg");
     seg.textContent = "";
-    [["earnings", "Earnings"], ["pending", "Pending"], ["withdrawals", "Withdrawals"], ["failed", "Failed"]].forEach((x) => {
+    if (["earnings", "pending", "payouts", "failed"].indexOf(payFilter) < 0) payFilter = "earnings";
+    [["earnings", "Earnings"], ["pending", "Pending"], ["payouts", "Payouts"], ["failed", "Failed"]].forEach((x) => {
       const b = el("button", payFilter === x[0] ? "active" : "", x[1]);
       b.type = "button";
       b.addEventListener("click", () => { payFilter = x[0]; keep("pay", payFilter); renderPayments(); });
@@ -679,21 +702,34 @@
     const list = $("payList");
     list.textContent = "";
     if (!ok()) {
-      list.appendChild(el("div", "notice", "Payment details are not available yet. Finish the orders update, then refresh this page."));
+      list.appendChild(el("div", "notice", "Payment details are not available yet. Refresh this page."));
       return;
     }
+    const statusOfPayout = (id) => { const x = payouts.filter((q) => String(q.id) === String(id))[0]; return x ? x.status : ""; };
+    const ref = (o) => "Order #" + String(o.order_id).slice(0, 8).toUpperCase();
+    const live = liveLines();
     let rows = [];
     if (payFilter === "earnings") {
-      rows = orders.filter(isShipped).map((o) => txRow(o.product_name, "Shipped " + shortDate(o.shipped_at) + " · Order #" + String(o.order_id).slice(0, 8).toUpperCase(), "+" + naira(lineTotal(o)), "in"));
+      rows = live.filter((o) => o.delivered_at).map((o) => {
+        const st = o.payout_id ? (statusOfPayout(o.payout_id) === "paid" ? "Paid out" : "Being sent") : "Next Monday";
+        return txRow(o.product_name, "Delivered " + shortDate(o.delivered_at) + " · " + ref(o) + " · " + st, "+" + naira(netOf(o)), "in");
+      });
     } else if (payFilter === "pending") {
-      rows = orders.filter(isOpen).map((o) => txRow(o.product_name, "Waiting to ship · Ordered " + shortDate(o.ordered_at), naira(lineTotal(o)), "wait"));
+      rows = live.filter((o) => !o.delivered_at).map((o) =>
+        txRow(o.product_name, (o.shipped_at ? "Shipped " + shortDate(o.shipped_at) + ", waiting for the buyer to confirm" : "Waiting for you to ship") + " · " + ref(o), naira(netOf(o)), "wait"));
+    } else if (payFilter === "payouts") {
+      rows = payouts.filter((x) => x.status !== "failed").map((x) =>
+        txRow("Weekly payout", shortDate(x.created_at) + " · " + (x.status === "paid" ? "Sent to your bank" : "On its way") + " · " + naira(x.gross) + " sales − " + naira(x.commission) + " commission", naira(x.amount), x.status === "paid" ? "in" : "wait"));
+    } else {
+      rows = payouts.filter((x) => x.status === "failed").map((x) =>
+        txRow("Payout not sent", shortDate(x.created_at) + " · it will be tried again", naira(x.amount), "bad"));
     }
     if (rows.length) { rows.forEach((r) => list.appendChild(r)); return; }
     const empty = {
-      earnings: "No earnings yet. Money shows here once you mark an order as shipped.",
-      pending: "Nothing pending. Orders waiting to be shipped will show here.",
-      withdrawals: "No withdrawals yet. Your withdrawals will appear here once payments are connected.",
-      failed: "No failed transactions. If a payment or withdrawal fails, it will appear here."
+      earnings: "No earnings yet. Money shows here once a buyer confirms they received an item.",
+      pending: "Nothing pending. Items waiting to be shipped or confirmed will show here.",
+      payouts: "No payouts yet. BODEGS pays every Monday.",
+      failed: "No failed payouts. If a payout cannot be sent, it will show here and be tried again."
     }[payFilter];
     list.appendChild(el("div", "notice", empty));
   }
@@ -715,6 +751,7 @@
     top.appendChild(el("span", "", "Order #" + String(o.order_id).slice(0, 8).toUpperCase() + " · " + shortDate(o.ordered_at)));
     let label = "To ship", cls = "todo";
     if (o.order_status === "cancelled") { label = "Cancelled"; cls = "cancel"; }
+    else if (o.delivered_at) { label = "Delivered " + shortDate(o.delivered_at); cls = "done"; }
     else if (o.shipped_at) { label = "Shipped " + shortDate(o.shipped_at); cls = "done"; }
     top.appendChild(el("span", "chip2 " + cls, label));
     card.appendChild(top);
@@ -752,7 +789,7 @@
     if (o.delivery_address) buyer.appendChild(el("p", "", o.delivery_address));
     card.appendChild(buyer);
 
-    if (o.order_status !== "cancelled") {
+    if (o.order_status !== "cancelled" && !o.delivered_at) {
       const btn = el("button", "btn " + (o.shipped_at ? "ghost" : "primary"), o.shipped_at ? "Undo shipped" : "Mark as shipped");
       btn.type = "button";
       btn.addEventListener("click", () => markShipped(o, btn));
@@ -799,8 +836,7 @@
   }
 
   function renderDashboard() {
-    $("hello").textContent = "Hi, " + (seller ? seller.boutique_name : "seller");
-    fillMoney($("miniMoney"), false);
+    fillMoney($("miniMoney"));
     const box = $("dashOrders");
     box.textContent = "";
     if (!ok()) { box.appendChild(el("div", "notice", "Orders are not available yet.")); return; }
@@ -818,7 +854,7 @@
     who.appendChild(el("span", "chip2 " + (seller.verified ? "done" : "cancel"), seller.verified ? "✓ Verified BODEGS seller" : "Not verified yet"));
     id.appendChild(who);
     panel.appendChild(id);
-    [["City", seller.city], ["Main category", seller.category],
+    [["City", seller.city], ["Address", seller.address], ["Main category", seller.category],
      ["Live products", String(products.filter((p) => p.active).length)],
      ["Total orders", ok() ? String(orders.length) : "–"]].forEach((x) => {
       if (!x[1]) return;
@@ -828,6 +864,63 @@
       panel.appendChild(r);
     });
     $("storeOpen").href = "store.html?id=" + encodeURIComponent(seller.id);
+    $("tbStore").href = "store.html?id=" + encodeURIComponent(seller.id);
+    $("shopName").textContent = seller.boutique_name;
+    $("shopLogo").textContent = (seller.boutique_name || "B").trim().charAt(0).toUpperCase() || "B";
+    if (!$("settingsPanel").childNodes.length) renderSettings(false);
+    if (!$("lookPanel").childNodes.length) renderLook();
+  }
+
+  function renderLook() {
+    const box = $("lookPanel");
+    box.textContent = "";
+    box.appendChild(el("h2", "", "Appearance"));
+    if (window.BODEGSTheme && window.BODEGSTheme.toggle) box.appendChild(window.BODEGSTheme.toggle());
+    box.appendChild(el("p", "help", "Choose light, dark, or follow your phone."));
+  }
+
+  function renderSettings(editing) {
+    const box = $("settingsPanel");
+    box.textContent = "";
+    box.appendChild(el("h2", "", "Store settings"));
+    if (!editing) {
+      box.appendChild(el("p", "help", "Change your business name, city and address."));
+      const b = el("button", "btn ghost", "Edit store details");
+      b.type = "button"; b.style.marginTop = "10px";
+      b.addEventListener("click", () => renderSettings(true));
+      box.appendChild(b);
+      return;
+    }
+    const mk = (label, value, ph) => {
+      const f = el("div", "field");
+      f.appendChild(el("label", "lbl", label));
+      const i = document.createElement("input");
+      i.type = "text"; i.value = value || ""; i.placeholder = ph || ""; i.maxLength = 120;
+      f.appendChild(i); box.appendChild(f);
+      return i;
+    };
+    const nameIn = mk("Business name", seller.boutique_name, "Your store name");
+    const cityIn = mk("City", seller.city, "e.g. Abuja");
+    const addrIn = mk("Business address", seller.address, "Street, area, state");
+    const err = el("p", "help", ""); err.style.color = "var(--red)"; box.appendChild(err);
+    const save = el("button", "btn primary", "Save changes");
+    save.type = "button";
+    save.addEventListener("click", async () => {
+      const n = nameIn.value.trim();
+      if (n.length < 2) { err.textContent = "Please enter your business name."; return; }
+      save.disabled = true; save.textContent = "Saving...";
+      const r = await sb.rpc("seller_update_profile", { p_name: n, p_city: cityIn.value.trim(), p_address: addrIn.value.trim() });
+      if (r.error) { err.textContent = "Could not save. Please try again."; save.disabled = false; save.textContent = "Save changes"; return; }
+      seller.boutique_name = n; seller.city = cityIn.value.trim(); seller.address = addrIn.value.trim();
+      document.title = n + " — BODEGS Seller";
+      toast("Store details saved.");
+      renderSettings(false);
+      renderStore();
+    });
+    box.appendChild(save);
+    const c = el("button", "btn ghost", "Cancel"); c.type = "button"; c.style.marginTop = "10px";
+    c.addEventListener("click", () => renderSettings(false));
+    box.appendChild(c);
   }
 
   function renderAll() {
@@ -1245,10 +1338,11 @@
     }
 
     seller = data;
+    try { const ad = await sb.from("sellers").select("address").eq("owner_id", user.id).maybeSingle(); if (ad && ad.data) seller.address = ad.data.address; } catch (e) {}
     $("shopName").textContent = seller.boutique_name;
     $("shopLogo").textContent = (seller.boutique_name || "B").trim().charAt(0).toUpperCase() || "B";
     document.title = seller.boutique_name + " — BODEGS Seller";
-    if (await loadProducts()) { await loadOrders(); await loadBank(); renderList(); }
+    if (await loadProducts()) { await loadOrders(); await loadBank(); await loadMoney(); renderList(); }
   })();
 </script>
 </body>
