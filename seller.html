@@ -1031,8 +1031,8 @@
     $("docOverlay").hidden = false;
     $("docOverlay").scrollTop = 0;
   }
-  $("openTerms").addEventListener("click", () => openDoc("Seller Terms & Conditions", SELLER_TERMS));
-  $("openPrivacy").addEventListener("click", () => openDoc("Seller Privacy Policy", SELLER_PRIVACY));
+  $("openTerms").addEventListener("click", () => { location.href = "legal.html#seller-terms"; });
+  $("openPrivacy").addEventListener("click", () => { location.href = "legal.html#seller-privacy"; });
   $("docClose").addEventListener("click", () => { $("docOverlay").hidden = true; });
   $("setClose").addEventListener("click", closeSettings);
 

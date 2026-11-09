@@ -1388,21 +1388,11 @@
       }
 
       function termsSheet() {
-        docSheet("Terms & Conditions", [
-          ["h4", "Using BODEGS"], ["p", "BODEGS is a marketplace where verified sellers list fashion items. By creating an account you agree to give correct details and to use the app lawfully."],
-          ["h4", "Orders and payment"], ["p", "Orders are paid for and delivered through BODEGS. Prices are in naira (₦). A seller may cancel an order if an item is no longer available, and you will be told."],
-          ["h4", "Returns and disputes"], ["p", "If an item is not as described, contact BODEGS support as soon as you receive it so we can help."],
-          ["h4", "Your account"], ["p", "Keep your login private. BODEGS may suspend accounts that break these terms."]
-        ]);
+        location.href = "legal.html#terms";
       }
 
       function privacySheet() {
-        docSheet("Privacy & Cookie Policy", [
-          ["h4", "What we keep"], ["p", "Your name, email, age and delivery details so we can run your account and deliver your orders. Your login is handled securely by our database provider."],
-          ["h4", "On your phone"], ["p", "BODEGS saves a few small items in your browser: your cart, recently viewed items, saved addresses, profile photo and your Light / Dark choice."],
-          ["h4", "Sharing"], ["p", "We share your delivery details only with the seller and delivery partner for your order. We do not sell your information."],
-          ["h4", "Your choices"], ["p", "You can edit your details in Edit Profile, clear saved data in Manage Cookies, or delete your account in Settings."]
-        ]);
+        location.href = "legal.html#privacy";
       }
 
       function aboutSheet() {
@@ -1520,8 +1510,8 @@
 
       document.getElementById("gearBtn").addEventListener("click", openSettings);
       if (location.hash === "#settings") showSettings();
-      if (location.hash === "#terms") termsSheet();
-      if (location.hash === "#privacy") privacySheet();
+      if (location.hash === "#terms") location.replace("legal.html#terms");
+      if (location.hash === "#privacy") location.replace("legal.html#privacy");
       document.getElementById("stBack").addEventListener("click", closeSettings);
       document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && sheet.hidden && !settingsPage.hidden) closeSettings();

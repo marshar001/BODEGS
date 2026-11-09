@@ -183,6 +183,12 @@
           <span>I confirm that everything I entered is true and my documents are genuine.</span>
         </label>
       </div>
+      <div class="field">
+        <label class="check">
+          <input type="checkbox" id="agreeLegal">
+          <span>I am 18 or older. I have read and accept the <a href="legal.html#seller-terms" target="_blank" rel="noopener">Seller Terms &amp; Conditions</a> and the <a href="legal.html#seller-privacy" target="_blank" rel="noopener">Seller Privacy Policy</a>, and I agree that BODEGS may collect and use my details and documents for verification, payouts and fraud prevention as described there.</span>
+        </label>
+      </div>
     </section>
 
     <div id="msg" role="status" aria-live="polite" hidden></div>
@@ -263,6 +269,7 @@
     if (n === 4) {
       problem = fileProblem("addressDoc", "your address proof");
       if (!problem && !$("agree").checked) problem = "Please tick the confirmation box.";
+    if (!problem && !$("agreeLegal").checked) problem = "Please tick the box to accept the Seller Terms and Privacy Policy.";
     }
     if (problem) { showMsg(problem, "err"); return false; }
     return true;
