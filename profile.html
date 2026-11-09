@@ -1521,6 +1521,7 @@
       document.getElementById("gearBtn").addEventListener("click", openSettings);
       if (location.hash === "#settings") showSettings();
       if (location.hash === "#terms") termsSheet();
+      if (location.hash === "#privacy") privacySheet();
       document.getElementById("stBack").addEventListener("click", closeSettings);
       document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && sheet.hidden && !settingsPage.hidden) closeSettings();

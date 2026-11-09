@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <script src="dark.js?v=3"></script>
+  <script src="press.js?v=1" defer></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
@@ -10,7 +11,7 @@
     :root { --green:#263B50; --cream:#eef1f5; --card:#ffffff; --line:rgba(38,59,80,.16); --muted:#66727f; --red:#a3392f; --amber:#795516; --ink:#1b1b1b; }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    body { margin: 0; background: var(--cream); color: var(--ink); font-family: Roboto, "Segoe UI", Arial, sans-serif; padding-bottom: 120px; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font-family: Roboto, "Segoe UI", Arial, sans-serif; padding-bottom: 120px; min-height: 100vh; }
 
     header.topbar { position: sticky; top: 0; z-index: 40; background: var(--cream); border-bottom: 1px solid var(--line); }
     .tb-in { max-width: 640px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
@@ -166,6 +167,65 @@
     .store-id h2 { margin: 0; }
     #toast { position: fixed; left: 14px; right: 14px; bottom: 100px; max-width: 440px; margin: 0 auto; padding: 13px 15px; border-radius: 12px; font-size: 14px; background: #1b1b1b; color: #fff; z-index: 60; }
     #toast.err { background: var(--red); }
+
+    /* ---------- compact layout, settings, BODEGS nav feel ---------- */
+    .money.compact { padding: 12px 14px; border-radius: 18px; margin-bottom: 10px; }
+    .money.compact small { font-size: 12px; }
+    .money.compact .big { font-size: 24px; margin: 2px 0 10px; }
+    .money.compact .trio { gap: 6px; }
+    .money.compact .trio div { padding: 7px 8px; border-radius: 12px; }
+    .money.compact .trio b { font-size: 13px; margin-top: 2px; }
+    .money.compact .trio span { font-size: 10.5px; }
+    .stats4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 6px; }
+    .stats4 .stat { padding: 8px 2px; border-radius: 12px; box-shadow: none; border: 1px solid var(--line); }
+    .stats4 .stat b { font-size: 17px; }
+    .stats4 .stat span { font-size: 10.5px; }
+    .sectitle { margin: 12px 2px 8px; font-size: 16px; }
+
+    .order { padding: 10px 12px; border-radius: 14px; margin-bottom: 8px; }
+    .order .top { margin-bottom: 8px; font-size: 11.5px; }
+    .order .pic { width: 44px; height: 56px; border-radius: 9px; }
+    .order .line { gap: 10px; align-items: center; }
+    .order h3 { font-size: 14px; margin: 0 0 2px; }
+    .order .sum { font-size: 12.5px; }
+    .order .buyer { margin-top: 8px; padding-top: 8px; font-size: 12.5px; line-height: 1.35; display: flex; flex-wrap: wrap; gap: 2px 10px; }
+    .order .buyer b { display: inline; margin: 0; }
+    .order .buyer p { margin: 0; }
+    .order .btn { margin-top: 8px; padding: 9px; font-size: 13px; border-radius: 10px; }
+    .chip2 { font-size: 10.5px; padding: 3px 8px; white-space: nowrap; }
+
+    .item { padding: 10px; margin-top: 8px; border-radius: 14px; }
+    .thumb { width: 64px; height: 80px; border-radius: 10px; }
+    .info h3 { font-size: 15px; margin: 0 0 2px; }
+    .price { margin: 0 0 2px; font-size: 14px; }
+    .meta { margin: 0 0 6px; font-size: 12px; }
+    .item-actions { margin-top: 8px; gap: 6px; }
+    .item-actions .btn { padding: 7px 4px; font-size: 13px; border-radius: 10px; }
+
+    .panel { padding: 12px 14px; margin-bottom: 10px; border-radius: 16px; }
+    .panel h2 { font-size: 15px; margin-bottom: 6px; }
+    .panel .row2x { padding: 7px 0; font-size: 13.5px; }
+    .store-id .logo { width: 48px; height: 48px; border-radius: 15px; font-size: 21px; }
+    .gear { margin-left: auto; flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--line); background: transparent; color: var(--green); display: grid; place-items: center; cursor: pointer; padding: 0; }
+    .gear svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    .setov { position: fixed; inset: 0; z-index: 70; background: var(--cream); overflow-y: auto; padding-bottom: 40px; }
+    .setbar { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--cream); border-bottom: 1px solid var(--line); }
+    .setbar h2 { margin: 0; font-size: 18px; }
+    .setbar button { border: 0; background: none; font-size: 26px; line-height: 1; color: var(--ink); cursor: pointer; padding: 4px 10px; }
+    .setbody { max-width: 640px; margin: 0 auto; padding: 14px; }
+    .setrow { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; }
+    .setrow:first-child { border-top: 0; }
+    .setrow span { color: var(--muted); font-size: 20px; }
+
+    .snav { display: block; padding: 0; }
+    .snav .snav-wrap { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; height: 100%; padding: 0 6px; }
+    .snav .bn-pill { position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 12px) / 5); pointer-events: none; }
+    .snav .bn-pill i { position: absolute; inset: 0; border-radius: 22px; background: rgba(255,255,255,.18); }
+    .snav .bn-pill.go { transition: transform .42s cubic-bezier(.34,1.32,.5,1); }
+    .snav button { z-index: 1; height: 52px; width: 100%; flex: none; justify-content: center; }
+    .snav button.active { background: transparent; color: #fff; }
+    .snav button:active { transform: scale(.95); }
   </style>
 </head>
 <body>
@@ -177,7 +237,6 @@
       <p class="eyebrow">BODEGS SELLER</p>
       <h1 id="shopName">My store</h1>
     </div>
-    <a class="tb-link" id="tbStore" href="#">View store</a>
   </div>
 </header>
 
@@ -188,9 +247,8 @@
 
     <!-- Dashboard -->
     <div id="viewDashboard">
-      <div class="grid2" id="stats"></div>
-      <div class="money" id="miniMoney"></div>
-      <button type="button" class="btn primary" id="dashAdd">+ Add a product</button>
+      <div class="money compact" id="miniMoney"></div>
+      <div class="stats4" id="stats"></div>
       <div class="sectitle"><span>Latest orders</span><button type="button" id="seeOrders">See all &rsaquo;</button></div>
       <div id="dashOrders"></div>
     </div>
@@ -211,29 +269,40 @@
     <!-- Store -->
     <div id="viewProfile" hidden>
       <div class="panel" id="storePanel"></div>
-      <div class="panel" id="settingsPanel"></div>
-      <div class="panel" id="lookPanel"></div>
-      <a class="btn primary" id="storeOpen" href="#">View my store</a>
-      <button type="button" class="btn ghost" id="storeCopy" style="margin-top:10px">Copy store link</button>
-      <button type="button" class="btn ghost" id="logoutBtn" style="margin-top:10px">Log out of seller account</button>
-      <p class="foot">Logging out takes you back to the BODEGS marketplace. To open this page again you will log in with your seller password.</p>
+    </div>
+
+    <div class="setov" id="setOverlay" hidden>
+      <div class="setbar"><button type="button" id="setClose" aria-label="Back">&larr;</button><h2>Settings</h2></div>
+      <div class="setbody">
+        <div class="panel" id="settingsPanel"></div>
+        <div class="panel" id="lookPanel"></div>
+        <div class="panel">
+          <a class="setrow" href="profile.html#terms">Terms &amp; Conditions <span>&rsaquo;</span></a>
+          <a class="setrow" href="profile.html#privacy">Privacy &amp; Cookie Policy <span>&rsaquo;</span></a>
+        </div>
+        <button type="button" class="btn ghost" id="storeCopy">Copy store link</button>
+        <button type="button" class="btn ghost" id="logoutBtn" style="margin-top:10px">Log out of seller account</button>
+        <p class="foot">Logging out takes you back to the BODEGS marketplace. To open this page again you will log in with your seller password.</p>
+      </div>
     </div>
 
     <!-- Payments -->
     <div id="viewPayments" hidden>
+      <div class="money compact" id="payMoney"></div>
       <div class="panel" id="bankPanel"></div>
-      <div class="money" id="payMoney"></div>
       <div class="seg" id="paySeg"></div>
       <div id="payList"></div>
-      <p class="foot">Amounts shown are what you receive after the BODEGS commission. Payouts go to the bank account above.</p>
+      <p class="foot">Paid every Monday for items buyers have received. You get 90% of each sale; amounts shown are after the BODEGS commission. Payouts go to the bank account below.</p>
     </div>
 
     <nav class="snav dk-skip" id="snav" aria-label="Seller navigation">
+      <div class="snav-wrap"><div class="bn-pill" id="pill"><i></i></div>
       <button type="button" data-view="dashboard" class="active"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect></svg><span>Dashboard</span></button>
       <button type="button" data-view="products"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12.5 12 21l-8.5-8.5V4h8.5l8.5 8.5Z"></path><circle cx="8" cy="8" r="1.4"></circle></svg><span>Products</span></button>
       <button type="button" data-view="orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h12A1.5 1.5 0 0 1 19.5 5v14A1.5 1.5 0 0 1 18 20.5H6A1.5 1.5 0 0 1 4.5 19V5A1.5 1.5 0 0 1 6 3.5Z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg><span>Orders</span><i class="dot" id="ordersCount" hidden>0</i></button>
       <button type="button" data-view="payments"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"></rect><path d="M3 10h18"></path><path d="M16.5 15h1.5"></path></svg><span>Payments</span></button>
       <button type="button" data-view="profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"></path></svg><span>Profile</span></button>
+    </div>
     </nav>
   </section>
 
@@ -575,6 +644,7 @@
   function fillMoney(box) {
     const m = moneyFigures();
     box.textContent = "";
+    box.classList.add("compact");
     box.appendChild(el("small", "", "Ready for your next payout"));
     box.appendChild(el("span", "big", naira(m.ready)));
     const trio = el("div", "trio");
@@ -585,7 +655,6 @@
       trio.appendChild(d);
     });
     box.appendChild(trio);
-    box.appendChild(el("p", "mnote", "Paid every Monday for items buyers have received. You get " + (100 - commissionPct) + "% of each sale."));
   }
 
   function txRow(title, sub, amount, cls) {
@@ -853,6 +922,11 @@
     who.appendChild(el("h2", "", seller.boutique_name));
     who.appendChild(el("span", "chip2 " + (seller.verified ? "done" : "cancel"), seller.verified ? "✓ Verified BODEGS seller" : "Not verified yet"));
     id.appendChild(who);
+    const gear = el("button", "gear");
+    gear.type = "button"; gear.setAttribute("aria-label", "Settings");
+    gear.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"></circle><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.9-1.5-1.9-3.3-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.1 2.6h-3.8l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-1.9 3.3 1.9 1.5a7.6 7.6 0 0 0 0 3l-1.9 1.5 1.9 3.3 2.3-.9c.8.6 1.6 1.1 2.6 1.5l.4 2.5h3.8l.4-2.5c1-.4 1.8-.9 2.6-1.5l2.3.9 1.9-3.3-1.9-1.5Z"></path></svg>';
+    gear.addEventListener("click", openSettings);
+    id.appendChild(gear);
     panel.appendChild(id);
     [["City", seller.city], ["Address", seller.address], ["Main category", seller.category],
      ["Live products", String(products.filter((p) => p.active).length)],
@@ -863,13 +937,15 @@
       r.appendChild(el("b", "", x[1]));
       panel.appendChild(r);
     });
-    $("storeOpen").href = "store.html?id=" + encodeURIComponent(seller.id);
-    $("tbStore").href = "store.html?id=" + encodeURIComponent(seller.id);
     $("shopName").textContent = seller.boutique_name;
     $("shopLogo").textContent = (seller.boutique_name || "B").trim().charAt(0).toUpperCase() || "B";
     if (!$("settingsPanel").childNodes.length) renderSettings(false);
     if (!$("lookPanel").childNodes.length) renderLook();
   }
+
+  function openSettings() { $("setOverlay").hidden = false; document.body.style.overflow = "hidden"; $("setOverlay").scrollTop = 0; }
+  function closeSettings() { $("setOverlay").hidden = true; document.body.style.overflow = ""; }
+  $("setClose").addEventListener("click", closeSettings);
 
   function renderLook() {
     const box = $("lookPanel");
@@ -931,6 +1007,17 @@
     if (seller) renderStore();
   }
 
+  let pillReady = false;
+  function movePill(i) {
+    const p = $("pill");
+    p.style.transform = "translateX(" + (i * 100) + "%)";
+    if (!pillReady) {
+      pillReady = true;
+      p.getBoundingClientRect();
+      requestAnimationFrame(() => requestAnimationFrame(() => p.classList.add("go")));
+    }
+  }
+
   function showView(name, fromNav) {
     currentView = name;
     keep("view", name);
@@ -939,7 +1026,11 @@
       const id = "view" + v.charAt(0).toUpperCase() + v.slice(1);
       $(id).hidden = v !== name;
     });
-    Array.prototype.forEach.call($("snav").children, (b) => b.classList.toggle("active", b.dataset.view === name));
+    Array.prototype.forEach.call($("snav").querySelectorAll("button"), (b, i) => {
+      const on = b.dataset.view === name;
+      b.classList.toggle("active", on);
+      if (on) movePill(i);
+    });
     window.scrollTo(0, 0);
   }
   $("snav").addEventListener("click", (e) => {
@@ -950,7 +1041,6 @@
     if (!$("listView").hidden) showView(fromHash() || "dashboard");
   });
   $("seeOrders").addEventListener("click", () => showView("orders", true));
-  $("dashAdd").addEventListener("click", () => { currentView = "products"; openEditor(null); });
 
   $("logoutBtn").addEventListener("click", async () => {
     $("logoutBtn").disabled = true;
