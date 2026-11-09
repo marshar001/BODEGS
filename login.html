@@ -130,9 +130,30 @@
   }
   $("switchBtn").addEventListener("click", () => { signup = !signup; layout(); });
 
+  // ---- limits: stop password guessing and reset-email spam (this phone/browser) ----
+  const LOCK_MIN = [5, 15, 60];   // wait times, growing each time someone gets locked out
+  function lockKey(email) { return "bodegsFail:" + email.toLowerCase(); }
+  function readLock(email) { try { return JSON.parse(localStorage.getItem(lockKey(email)) || "{}"); } catch (e) { return {}; } }
+  function writeLock(email, o) { try { localStorage.setItem(lockKey(email), JSON.stringify(o)); } catch (e) {} }
+  function waitText(ms) { const s = Math.ceil(ms / 1000), m = Math.floor(s / 60); return m + ":" + String(s % 60).padStart(2, "0"); }
+  function lockedMsg(email) {
+    const o = readLock(email);
+    if (o.until && o.until > Date.now()) return "Too many wrong tries. For safety, please wait " + waitText(o.until - Date.now()) + " before trying again, or use Forgot password.";
+    return "";
+  }
+  function recordFail(email) {
+    const o = readLock(email);
+    o.n = (o.n || 0) + 1;
+    if (o.n >= 5) { o.until = Date.now() + LOCK_MIN[Math.min(o.locks || 0, LOCK_MIN.length - 1)] * 60000; o.locks = (o.locks || 0) + 1; o.n = 0; }
+    writeLock(email, o);
+  }
+  let lastReset = 0;
+
   $("forgot").addEventListener("click", async () => {
     const email = $("email").value.trim();
     if (!email) { say("err", "Type your email above first, then tap Forgot password."); return; }
+    if (Date.now() - lastReset < 60000) { say("err", "A reset link was just sent. Please wait a minute before asking again."); return; }
+    lastReset = Date.now();
     const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: new URL("login.html", location.href).href });
     if (error) say("err", friendly(error)); else say("ok", "Password reset link sent. Check your email.");
   });
@@ -171,6 +192,7 @@
       if (!$("agree").checked) { say("err", "Please tick the box to accept the Terms & Conditions and Privacy Policy."); return; }
       if (password.length < 8) { say("err", "Your password needs at least 8 characters."); return; }
     }
+    if (!signup) { const lm = lockedMsg(email); if (lm) { say("err", lm); return; } }
     $("go").disabled = true;
     try {
       if (signup) {
@@ -185,7 +207,15 @@
         }
       } else {
         const { error } = await signIn(email, password);
-        if (error) throw error;
+        if (error) {
+          if ((error.message || "").toLowerCase().indexOf("invalid login") >= 0) {
+            recordFail(email);
+            const lm = lockedMsg(email);
+            if (lm) throw new Error(lm);
+          }
+          throw error;
+        }
+        try { localStorage.removeItem(lockKey(email)); } catch (x) {}
         try { if ($("remember").checked) localStorage.setItem("bodegsEmail", email); else localStorage.removeItem("bodegsEmail"); } catch (x) {}
       }
       location.replace(next);

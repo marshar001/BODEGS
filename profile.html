@@ -437,6 +437,9 @@
       background: rgba(18, 30, 26, 0.45);
     }
 
+    /* the floating bottom bar must not sit on top of pop-up sheets */
+    body:has(#sheet:not([hidden])) nav.bottom-nav, body:has(.cf-back:not([hidden])) nav.bottom-nav { display: none !important; }
+
     .sheet-backdrop[hidden] {
       display: none;
     }
@@ -485,7 +488,7 @@
 
     .sheet-body {
       overflow-y: auto;
-      padding: 6px 20px 28px;
+      padding: 6px 20px calc(28px + env(safe-area-inset-bottom));
       font-size: 14px;
       color: var(--text);
       line-height: 1.55;
