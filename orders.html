@@ -1000,8 +1000,18 @@
       const base = normaliseStatus(order.status);
       if (base === "cancelled") return { key: "cancelled", label: "Cancelled" };
       if (!order.paid) return { key: "pending", label: "Pending" };
+      const lines = Array.isArray(order.products) ? order.products : [];
+      if (lines.length && lines.every(p => p.delivered)) return { key: "delivered", label: "Delivered" };
+      if (lines.length && lines.some(p => p.shipped)) return { key: "shipped", label: "Shipped" };
       if (base === "pending") return { key: "processing", label: "Paid", css: "paid" };
       return { key: base, label: base.charAt(0).toUpperCase() + base.slice(1) };
+    }
+
+    // True when something has been shipped and the buyer has not yet confirmed it arrived.
+    function canConfirmReceipt(order) {
+      if (!order.paid || normaliseStatus(order.status) === "cancelled") return false;
+      const lines = Array.isArray(order.products) ? order.products : [];
+      return lines.some(p => p.shipped && !p.delivered);
     }
 
     function formatDate(value) {
@@ -1181,7 +1191,12 @@
                     <button type="button" class="order-action ghost" data-cancel="${escapeHTML(order.rawId)}">Cancel</button>
                     <button type="button" class="order-action" data-pay="${escapeHTML(order.rawId)}">Pay now</button>
                   </div>`
-                : `<button type="button" class="order-action" data-details="${escapeHTML(order.rawId)}">Order details</button>`}
+                : canConfirmReceipt(order)
+                  ? `<div class="order-btns">
+                      <button type="button" class="order-action ghost" data-details="${escapeHTML(order.rawId)}">Details</button>
+                      <button type="button" class="order-action" data-received="${escapeHTML(order.rawId)}">I received it</button>
+                    </div>`
+                  : `<button type="button" class="order-action" data-details="${escapeHTML(order.rawId)}">Order details</button>`}
             </div>
           </article>
         `;
@@ -1298,6 +1313,7 @@
             <div class="od-row"><span>Cancellation fee (10%)</span><span>${formatMoney(order.cancelFee)}</span></div>
             <div class="od-row"><span>Refunded to you</span><strong>${formatMoney(order.refundAmount)}</strong></div>
           </div>` : ""}
+        ${canConfirmReceipt(order) ? `<button type="button" class="od-close" data-received="${escapeHTML(order.rawId)}">I received it</button>` : ""}
         ${(!order.paid && !cancelled) ? `<button type="button" class="od-close" data-pay="${escapeHTML(order.rawId)}">Pay now</button>` : ""}
         ${(!cancelled && !shipped && !delivered) ? `<button type="button" class="od-cancel" data-cancel="${escapeHTML(order.rawId)}">Cancel order</button>` : ""}
         <button type="button" class="od-close" id="odClose" style="background:transparent;color:inherit;border:1px solid rgba(23,59,50,.25);margin-top:10px">Close</button>
@@ -1330,6 +1346,19 @@
       if (order) showOrderDetails(order);
     });
 
+
+    /* ---------- confirm that an order arrived ---------- */
+    document.addEventListener("click", async function (event) {
+      const button = event.target.closest("[data-received]");
+      if (!button) return;
+      const orderId = button.getAttribute("data-received");
+      if (!window.confirm("Confirm that you received your item(s)? The seller will be paid after this.")) return;
+      button.disabled = true;
+      const { error } = await sb.rpc("buyer_confirm_delivery", { p_order_id: String(orderId) });
+      if (error) { button.disabled = false; alert("We could not confirm this. Please try again."); return; }
+      if (odOpen) hideOrderDetails(false);
+      if (loadMyOrdersAgain) loadMyOrdersAgain();
+    });
 
     /* ---------- cancel an order ---------- */
     function askCancel(order) {
@@ -1451,7 +1480,7 @@
         .from("orders")
         .select(
           "id, status, payment_status, total, created_at, customer_name, phone, delivery_address, city, cancel_fee, refund_amount, " +
-          "order_items(qty, price_at_purchase, product_name, product_image, size, color, shipped_at)"
+          "order_items(qty, price_at_purchase, product_name, product_image, size, color, shipped_at, delivered_at)"
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -1484,7 +1513,8 @@
           size: item.size,
           color: item.color,
           shipped: !!item.shipped_at,
-          shippedAt: item.shipped_at
+          shippedAt: item.shipped_at,
+          delivered: !!item.delivered_at
         }))
       }));
 
