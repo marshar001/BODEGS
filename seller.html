@@ -214,6 +214,7 @@
 
     <!-- Payments -->
     <div id="viewPayments" hidden>
+      <div class="panel" id="bankPanel"></div>
       <div class="money" id="payMoney"></div>
       <div class="seg" id="paySeg"></div>
       <div id="payList"></div>
@@ -575,7 +576,96 @@
     return row;
   }
 
+  /* ---------- payout bank account ---------- */
+  let bankAccount = null, bankList = null;
+
+  async function loadBank() {
+    try {
+      const r = await sb.from("seller_bank_accounts").select("bank_name, account_number, account_name").maybeSingle();
+      bankAccount = r && r.data ? r.data : null;
+    } catch (e) { bankAccount = null; }
+  }
+
+  function renderBank(editing) {
+    const box = $("bankPanel");
+    if (!box) return;
+    box.textContent = "";
+    box.appendChild(el("h2", "", "Payout account"));
+    if (bankAccount && !editing) {
+      const r1 = el("div", "row2x"); r1.appendChild(el("span", "", "Bank")); r1.appendChild(el("b", "", bankAccount.bank_name)); box.appendChild(r1);
+      const r2 = el("div", "row2x"); r2.appendChild(el("span", "", "Account")); r2.appendChild(el("b", "", "******" + String(bankAccount.account_number).slice(-4))); box.appendChild(r2);
+      const r3 = el("div", "row2x"); r3.appendChild(el("span", "", "Name")); r3.appendChild(el("b", "", bankAccount.account_name)); box.appendChild(r3);
+      box.appendChild(el("p", "help", "Your earnings are sent here once a week, after buyers receive their items."));
+      const b = el("button", "btn ghost", "Change account");
+      b.type = "button"; b.style.marginTop = "12px";
+      b.addEventListener("click", () => renderBank(true));
+      box.appendChild(b);
+      return;
+    }
+    if (!bankAccount) box.appendChild(el("p", "help", "Add the bank account where BODEGS should send your money. You will not be paid until this is set."));
+
+    const f1 = el("div", "field"); f1.appendChild(el("label", "", "Bank"));
+    const sel = document.createElement("select");
+    sel.appendChild(new Option("Loading banks...", ""));
+    f1.appendChild(sel); box.appendChild(f1);
+
+    const f2 = el("div", "field"); f2.appendChild(el("label", "", "Account number"));
+    const num = document.createElement("input");
+    num.type = "text"; num.inputMode = "numeric"; num.maxLength = 10; num.placeholder = "10-digit account number";
+    f2.appendChild(num);
+    const nameLine = el("p", "help", "");
+    f2.appendChild(nameLine); box.appendChild(f2);
+
+    const save = el("button", "btn primary", "Save payout account");
+    save.type = "button"; save.disabled = true;
+    box.appendChild(save);
+    if (editing) {
+      const c = el("button", "btn ghost", "Cancel"); c.type = "button"; c.style.marginTop = "10px";
+      c.addEventListener("click", () => renderBank(false)); box.appendChild(c);
+    }
+
+    function fillBanks() {
+      sel.textContent = "";
+      sel.appendChild(new Option("Select your bank", ""));
+      bankList.forEach((b) => sel.appendChild(new Option(b.name, b.code)));
+    }
+    if (bankList) fillBanks();
+    else sb.functions.invoke("seller-bank", { body: { action: "banks" } }).then((r) => {
+      bankList = (r.data && r.data.banks) || [];
+      if (!bankList.length) { sel.textContent = ""; sel.appendChild(new Option("Could not load banks", "")); return; }
+      fillBanks();
+    });
+
+    let checked = "";
+    async function check() {
+      save.disabled = true; checked = "";
+      const n = num.value.replace(/\D/g, "");
+      if (!sel.value || n.length !== 10) { nameLine.textContent = ""; return; }
+      nameLine.textContent = "Checking account...";
+      const r = await sb.functions.invoke("seller-bank", { body: { action: "resolve", bank_code: sel.value, account_number: n } });
+      if (r.data && r.data.account_name) {
+        nameLine.textContent = "Account name: " + r.data.account_name;
+        checked = n + "|" + sel.value; save.disabled = false;
+      } else {
+        let msg = "We could not find this account. Check the bank and number.";
+        try { const body = await r.error.context.json(); if (body && body.error) msg = body.error; } catch (e) {}
+        nameLine.textContent = msg;
+      }
+    }
+    sel.addEventListener("change", check);
+    num.addEventListener("input", check);
+
+    save.addEventListener("click", async () => {
+      if (checked !== num.value.replace(/\D/g, "") + "|" + sel.value) return;
+      save.disabled = true; save.textContent = "Saving...";
+      const r = await sb.functions.invoke("seller-bank", { body: { action: "save", bank_code: sel.value, bank_name: sel.options[sel.selectedIndex].text, account_number: num.value.replace(/\D/g, "") } });
+      if (r.data && r.data.saved) { await loadBank(); toast("Payout account saved."); renderBank(false); }
+      else { toast("Could not save the account. Please try again.", true); save.disabled = false; save.textContent = "Save payout account"; }
+    });
+  }
+
   function renderPayments() {
+    if (!$("bankPanel").childNodes.length) renderBank(false);
     fillMoney($("payMoney"), true);
     const seg = $("paySeg");
     seg.textContent = "";
@@ -1158,7 +1248,7 @@
     $("shopName").textContent = seller.boutique_name;
     $("shopLogo").textContent = (seller.boutique_name || "B").trim().charAt(0).toUpperCase() || "B";
     document.title = seller.boutique_name + " — BODEGS Seller";
-    if (await loadProducts()) { await loadOrders(); renderList(); }
+    if (await loadProducts()) { await loadOrders(); await loadBank(); renderList(); }
   })();
 </script>
 </body>
