@@ -788,6 +788,9 @@
 
     .od-confirm-box .od-keep { background: #173b32; color: #fff; }
     .od-confirm-box .od-do { background: #a8372f; color: #fff; }
+    .od-confirm-box .od-yes { background: #173b32; color: #fff; }
+    [data-theme="dark"] .od-confirm-box .od-yes { background: #2f6a58; }
+    .od-confirm-box .od-no { background: transparent; color: inherit; border: 1px solid rgba(23,59,50,.35); }
 
     .od-close {
       display: block;
@@ -1233,7 +1236,7 @@
       const cancelled = stage.key === "cancelled";
       const allShipped = order.products.length > 0 && order.products.every(p => p.shipped);
       const shipped = status === "shipped" || status === "delivered" || allShipped;
-      const delivered = status === "delivered";
+      const delivered = status === "delivered" || stage.key === "delivered";
 
       const when = value => {
         if (!value) return "";
@@ -1241,8 +1244,9 @@
         return isNaN(d) ? "" : d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
       };
       const shippedTimes = order.products.map(p => p.shippedAt).filter(Boolean).sort();
+      const deliveredTimes = order.products.map(p => p.deliveredAt).filter(Boolean).sort();
       const events = [];
-      if (delivered) events.push(["Delivered", "Your order has been delivered", ""]);
+      if (delivered) events.push(["Delivered", "You confirmed that your order arrived", when(deliveredTimes[deliveredTimes.length - 1])]);
       if (shipped) events.push(["Shipped", "Your order is on its way", when(shippedTimes[shippedTimes.length - 1])]);
       if (order.paid) events.push(["Payment confirmed", "We received your payment", ""]);
       if (cancelled) events.unshift(["Cancelled", "This order was cancelled", ""]);
@@ -1348,16 +1352,38 @@
 
 
     /* ---------- confirm that an order arrived ---------- */
-    document.addEventListener("click", async function (event) {
+    document.addEventListener("click", function (event) {
       const button = event.target.closest("[data-received]");
       if (!button) return;
       const orderId = button.getAttribute("data-received");
-      if (!window.confirm("Confirm that you received your item(s)? The seller will be paid after this.")) return;
-      button.disabled = true;
-      const { error } = await sb.rpc("buyer_confirm_delivery", { p_order_id: String(orderId) });
-      if (error) { button.disabled = false; alert("We could not confirm this. Please try again."); return; }
-      if (odOpen) hideOrderDetails(false);
-      if (loadMyOrdersAgain) loadMyOrdersAgain();
+
+      const wrap = document.createElement("div");
+      wrap.className = "od-confirm";
+      wrap.innerHTML = `
+        <div class="od-confirm-box dk-skip" role="alertdialog" aria-modal="true">
+          <h3>Did you receive your order?</h3>
+          <p>Only confirm if the item(s) have reached you. Once you confirm, the seller is paid and this cannot be undone.</p>
+          <button type="button" class="od-keep od-no">Not yet</button>
+          <button type="button" class="od-do od-yes">Yes, I received it</button>
+        </div>`;
+      document.body.appendChild(wrap);
+      const box = wrap.firstElementChild;
+      const ref = getComputedStyle(odSheet);
+      box.style.background = ref.backgroundColor;
+      box.style.color = ref.color;
+
+      wrap.querySelector(".od-keep").onclick = () => wrap.remove();
+      wrap.addEventListener("click", e => { if (e.target === wrap) wrap.remove(); });
+      wrap.querySelector(".od-yes").onclick = async function () {
+        const go = this;
+        go.disabled = true;
+        go.textContent = "Confirming...";
+        const { error } = await sb.rpc("buyer_confirm_delivery", { p_order_id: String(orderId) });
+        wrap.remove();
+        if (error) { alert("We could not confirm this. Please try again."); return; }
+        if (odOpen) hideOrderDetails(false);
+        if (loadMyOrdersAgain) loadMyOrdersAgain();
+      };
     });
 
     /* ---------- cancel an order ---------- */
@@ -1514,7 +1540,8 @@
           color: item.color,
           shipped: !!item.shipped_at,
           shippedAt: item.shipped_at,
-          delivered: !!item.delivered_at
+          delivered: !!item.delivered_at,
+          deliveredAt: item.delivered_at
         }))
       }));
 
