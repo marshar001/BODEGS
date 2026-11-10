@@ -50,6 +50,7 @@
     .agree { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 14px; font-size: 13.5px; line-height: 1.5; font-weight: 500; cursor: pointer; }
     .agree input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--brand); }
     .agree a { color: var(--brand); font-weight: 700; }
+    #cfbox { display: flex; justify-content: center; min-height: 0; margin: 0 0 14px; }
   </style>
 </head>
 <body>
@@ -72,6 +73,7 @@
       <div class="lab"><span>Password <span id="pwHint" hidden style="font-weight:400;color:var(--muted)">(8+ characters)</span></span><button type="button" id="forgot">Forgot password?</button></div>
       <div class="field hasEye"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="3"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg><input id="password" type="password" autocomplete="current-password" placeholder="Your password"><button type="button" class="eye" id="showPw" aria-label="Show password"><svg viewBox="0 0 24 24" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div>
       <label class="remember" id="rememberWrap"><input type="checkbox" id="remember"> Remember me</label>
+      <div id="cfbox"></div>
       <label class="agree" id="agreeWrap" hidden><input type="checkbox" id="agree"><span>I am 18 or older. I have read and accept the <a href="terms.html" target="_blank" rel="noopener">Terms &amp; Conditions</a> and the <a href="privacy.html" target="_blank" rel="noopener">Privacy &amp; Cookie Policy</a>, including how BODEGS collects and uses my information.</span></label>
       <button class="go" id="go" type="submit"><span id="goText">Login</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"></path></svg></button>
     </form>
@@ -153,8 +155,10 @@
     const email = $("email").value.trim();
     if (!email) { say("err", "Type your email above first, then tap Forgot password."); return; }
     if (Date.now() - lastReset < 60000) { say("err", "A reset link was just sent. Please wait a minute before asking again."); return; }
+    if (!captchaToken()) { say("err", "Please wait a moment while we check that you are not a robot."); return; }
     lastReset = Date.now();
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: new URL("login.html", location.href).href });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: new URL("login.html", location.href).href, captchaToken: captchaToken() });
+    resetCaptcha();
     if (error) say("err", friendly(error)); else say("ok", "Password reset link sent. Check your email.");
   });
 
@@ -193,6 +197,7 @@
       if (password.length < 8) { say("err", "Your password needs at least 8 characters."); return; }
     }
     if (!signup) { const lm = lockedMsg(email); if (lm) { say("err", lm); return; } }
+    if (!captchaToken()) { say("err", "Please wait a moment while we check that you are not a robot."); return; }
     $("go").disabled = true;
     try {
       if (signup) {
@@ -226,6 +231,7 @@
   });
 
   layout();
+  showCaptcha("cfbox");
   // already signed in: go straight on
   currentUser().then((u) => { if (u && !params.get("stay")) location.replace(next); }).catch(() => {});
 })();

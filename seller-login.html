@@ -39,6 +39,7 @@
     .go { width: 100%; height: 56px; border: 0; border-radius: 18px; background: var(--brand); color: #fff; font-family: inherit; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; box-shadow: 0 10px 22px rgba(0,0,0,.20); text-decoration: none; }
     .go svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .go:disabled { opacity: .6; }
+    #cfbox { display: flex; justify-content: center; min-height: 0; margin: 0 0 14px; }
     .or { display: flex; align-items: center; gap: 14px; margin: 18px 0; color: var(--muted); font-size: 14px; font-weight: 600; letter-spacing: .06em; }
     .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
     .alt { width: 100%; height: 54px; border: 1.5px solid var(--line); border-radius: 18px; background: transparent; color: var(--brand); font-family: inherit; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; text-decoration: none; }
@@ -81,6 +82,7 @@
         <div class="lab">Your BODEGS account password</div>
         <div class="field"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="3"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg><input id="acct" type="password" autocomplete="current-password" placeholder="The password you use to shop"></div>
       </div>
+      <div id="cfWrap" hidden><div id="cfbox"></div></div>
       <button class="go" id="go" type="submit"><span id="goText">Login</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"></path></svg></button>
     </form>
     <div class="or">OR</div>
@@ -127,6 +129,7 @@
     $("pwHint").hidden = !(creating || resetting);
     $("confirmWrap").hidden = !(creating || resetting);
     $("acctWrap").hidden = !resetting;
+    $("cfWrap").hidden = !resetting;
     $("ageWrap").hidden = !(creating && !knownAge);
     $("password").autocomplete = creating || resetting ? "new-password" : "current-password";
     $("password").placeholder = creating || resetting ? "At least 8 characters" : "Your seller password";
@@ -146,7 +149,7 @@
     const p = $("password");
     p.type = p.type === "password" ? "text" : "password";
   });
-  $("forgot").addEventListener("click", () => { state = "reset"; layout(); });
+  $("forgot").addEventListener("click", () => { state = "reset"; layout(); showCaptcha("cfbox"); });
   $("backToLogin").addEventListener("click", () => {
     state = "set";
     ["password", "confirm", "acct"].forEach((id) => { $(id).value = ""; });
@@ -171,7 +174,9 @@
       if (state === "reset") {
         const acct = $("acct").value;
         if (!acct) throw new Error("Enter your BODEGS account password.");
-        const r = await sb.auth.signInWithPassword({ email: email, password: acct });
+        if (!captchaToken()) throw new Error("Please wait a moment while we check that you are not a robot.");
+        const r = await sb.auth.signInWithPassword({ email: email, password: acct, options: { captchaToken: captchaToken() } });
+        resetCaptcha();
         if (r.error) throw r.error;
       }
       if (state === "none" && !knownAge) {

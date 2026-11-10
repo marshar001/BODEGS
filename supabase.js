@@ -74,14 +74,63 @@ async function loadCart() {
   return data;
 }
 
+// ---------- Cloudflare Turnstile (bot check) ----------
+// Public site key: safe to keep here. The SECRET key is only ever typed into Supabase.
+const TURNSTILE_SITE_KEY = "0x4AAAAAAF69DBrKDW7Iko73";
+let _cfToken = "";
+let _cfWidget = null;
+let _cfLoading = false;
+let _cfPendingBox = null;
+
+function _cfDraw(boxId) {
+  const box = document.getElementById(boxId);
+  if (!box || !window.turnstile) return;
+  if (_cfWidget !== null) { try { window.turnstile.remove(_cfWidget); } catch (e) {} _cfWidget = null; }
+  _cfToken = "";
+  _cfWidget = window.turnstile.render(box, {
+    sitekey: TURNSTILE_SITE_KEY,
+    theme: "auto",
+    callback: function (t) { _cfToken = t; },
+    "expired-callback": function () { _cfToken = ""; },
+    "error-callback": function () { _cfToken = ""; }
+  });
+}
+
+// Shows the check box inside <div id="boxId">. Safe to call more than once.
+function showCaptcha(boxId) {
+  if (window.turnstile) { _cfDraw(boxId); return; }
+  _cfPendingBox = boxId;
+  if (_cfLoading) return;
+  _cfLoading = true;
+  const s = document.createElement("script");
+  s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+  s.async = true;
+  s.onload = function () { if (_cfPendingBox) _cfDraw(_cfPendingBox); };
+  s.onerror = function () { _cfLoading = false; };
+  document.head.appendChild(s);
+}
+
+// The current token ("" if the person has not passed the check yet).
+function captchaToken() { return _cfToken; }
+
+// Tokens work once only, so call this after every sign-in / sign-up / reset attempt.
+function resetCaptcha() {
+  _cfToken = "";
+  if (_cfWidget !== null && window.turnstile) { try { window.turnstile.reset(_cfWidget); } catch (e) {} }
+}
+
 // ---------- auth ----------
 async function signUp(email, password, fullName, age) {
   const data = { full_name: fullName };
   if (age) { data.age = age; }
-  return sb.auth.signUp({ email, password, options: { data } });
+  try {
+    return await sb.auth.signUp({ email, password, options: { data, captchaToken: captchaToken() || undefined } });
+  } finally { resetCaptcha(); }
 }
 async function signIn(email, password) {
-  return sb.auth.signInWithPassword({ email, password });
+  try {
+    return await sb.auth.signInWithPassword({ email, password, options: { captchaToken: captchaToken() || undefined } });
+  } finally { resetCaptcha(); }
 }
 async function signOut() {
   await sb.auth.signOut();
