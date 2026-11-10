@@ -16,7 +16,7 @@
     .top h1 { font-size: 17px; margin: 0; }
     .top a { color: var(--muted); font-size: 14px; text-decoration: none; }
     .tabs { display: flex; gap: 8px; margin-top: 12px; }
-    .tab { flex: 1; padding: 10px 6px; font-size: 14px; font-family: inherit; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; cursor: pointer; color: var(--ink); }
+    .tab { flex: 1; padding: 10px 4px; font-size: 13px; font-family: inherit; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; cursor: pointer; color: var(--ink); }
     .tab.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 
     main { max-width: 640px; margin: 0 auto; padding: 16px 16px 60px; }
@@ -29,6 +29,11 @@
     .badge { flex: none; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; background: #fef3c7; color: var(--amber); }
     .badge.approved { background: #dcfce7; color: var(--green); }
     .badge.rejected { background: #fee2e2; color: var(--red); }
+    .badge.active { background: #dcfce7; color: var(--green); }
+    .badge.suspended { background: #fef3c7; color: var(--amber); }
+    .badge.banned { background: #fee2e2; color: var(--red); }
+    .btn.suspend { background: #fff; color: var(--amber); border: 1.5px solid #fde68a; }
+    .btn.ban { background: var(--red); color: #fff; }
     .sub { color: var(--muted); font-size: 13px; margin: 4px 0 12px; }
     dl { margin: 0; display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; font-size: 14px; }
     dt { color: var(--muted); }
@@ -65,6 +70,7 @@
     <button type="button" class="tab on" data-status="pending">Pending <span id="cPending"></span></button>
     <button type="button" class="tab" data-status="approved">Approved</button>
     <button type="button" class="tab" data-status="rejected">Rejected</button>
+    <button type="button" class="tab" data-status="sellers">Sellers</button>
   </div>
 </header>
 
@@ -223,8 +229,100 @@
     return wrap;
   }
 
+  // ---- Sellers tab: suspend, ban, reinstate ----
+  const STATUS_WORD = { active: "Active", suspended: "Suspended", banned: "Banned" };
+
+  async function changeSeller(s, newStatus, reason, button, siblings) {
+    siblings.forEach((b) => { b.disabled = true; });
+    const { error } = await sb.rpc("set_seller_status", { p_seller: s.id, p_status: newStatus, p_reason: reason });
+    if (error) {
+      toast("Could not update: " + error.message, true);
+      siblings.forEach((b) => { b.disabled = false; });
+      return;
+    }
+    toast(s.boutique_name + " is now " + newStatus + ".");
+    load();
+  }
+
+  function sellerCard(s, contact, last) {
+    const st = s.status || "active";
+    const wrap = el("article", "app");
+    const head = el("div", "app-head");
+    head.appendChild(el("h2", "", s.boutique_name));
+    head.appendChild(el("span", "badge " + st, STATUS_WORD[st] || st));
+    wrap.appendChild(head);
+    wrap.appendChild(el("p", "sub", "Seller since " + formatDate(s.created_at)));
+
+    const dl = el("dl");
+    if (contact) {
+      row(dl, "Name", contact.full_name);
+      row(dl, "Phone", contact.phone, contact.phone ? "tel:" + contact.phone.replace(/[^\d+]/g, "") : "");
+      row(dl, "Email", contact.email, contact.email ? "mailto:" + contact.email : "");
+    }
+    row(dl, "City", s.city);
+    row(dl, "Category", s.category);
+    wrap.appendChild(dl);
+
+    if (st !== "active" && last) {
+      wrap.appendChild(el("p", "reason", "Reason (" + formatDate(last.created_at) + "): " + last.reason));
+    }
+
+    const actions = el("div", "actions");
+    const buttons = [];
+    function add(cls, label, fn) {
+      const b = el("button", "btn " + cls, label);
+      b.type = "button";
+      b.addEventListener("click", () => fn(b));
+      buttons.push(b);
+      actions.appendChild(b);
+    }
+    function ask(verb, newStatus, needsConfirm) {
+      return (b) => {
+        const reason = (prompt("Why are you " + verb + " " + s.boutique_name + "? The reason is saved.") || "").trim();
+        if (!reason) { toast("A reason is required.", true); return; }
+        if (needsConfirm && !confirm("Ban " + s.boutique_name + "? Their products will disappear from the shop and they cannot sell.")) return;
+        changeSeller(s, newStatus, reason, b, buttons);
+      };
+    }
+    if (st === "active") {
+      add("suspend", "Suspend", ask("suspending", "suspended", false));
+      add("ban", "Ban", ask("banning", "banned", true));
+    } else if (st === "suspended") {
+      add("approve", "Reinstate", (b) => {
+        if (!confirm("Reinstate " + s.boutique_name + "?")) return;
+        changeSeller(s, "active", "", b, buttons);
+      });
+      add("ban", "Ban", ask("banning", "banned", true));
+    } else {
+      add("approve", "Reinstate", (b) => {
+        if (!confirm("Reinstate " + s.boutique_name + "? Their products will show in the shop again.")) return;
+        changeSeller(s, "active", "", b, buttons);
+      });
+    }
+    wrap.appendChild(actions);
+    return wrap;
+  }
+
+  async function loadSellers() {
+    const [sr, ar, mr] = await Promise.all([
+      sb.from("sellers").select("id, owner_id, boutique_name, city, category, status, created_at").order("created_at", { ascending: false }),
+      sb.from("seller_applications").select("user_id, full_name, phone, email, status"),
+      sb.from("seller_moderation").select("seller_id, action, reason, created_at").order("created_at", { ascending: false })
+    ]);
+    if (sr.error) { note("Could not load sellers. Please try again.", true); return; }
+    const contacts = {};
+    (ar.data || []).forEach((a) => { if (a.status === "approved") contacts[a.user_id] = a; });
+    const lastNote = {};
+    (mr.data || []).forEach((m) => { if (!lastNote[m.seller_id]) lastNote[m.seller_id] = m; });
+    const list = $("list");
+    list.textContent = "";
+    if (!sr.data.length) { note("No sellers yet."); return; }
+    sr.data.forEach((s) => list.appendChild(sellerCard(s, contacts[s.owner_id], lastNote[s.id])));
+  }
+
   async function load() {
     note("Loading...");
+    if (status === "sellers") { return loadSellers(); }
     const { data, error } = await sb
       .from("seller_applications")
       .select("id, user_id, full_name, boutique_name, phone, email, city, category, about, social, cac_number, " +
