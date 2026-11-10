@@ -157,7 +157,7 @@
     if (Date.now() - lastReset < 60000) { say("err", "A reset link was just sent. Please wait a minute before asking again."); return; }
     if (!captchaToken()) { say("err", "Please wait a moment while we check that you are not a robot."); return; }
     lastReset = Date.now();
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: new URL("login.html", location.href).href, captchaToken: captchaToken() });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: new URL("reset-password.html", location.href).href, captchaToken: captchaToken() });
     resetCaptcha();
     if (error) say("err", friendly(error)); else say("ok", "Password reset link sent. Check your email.");
   });
