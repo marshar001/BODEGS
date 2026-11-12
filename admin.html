@@ -63,13 +63,31 @@
     .btn.pass { background: var(--green); color: #fff; }
     .btn.go { background: var(--ink); color: #fff; }
 
-    .hubitem { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); margin-top: 12px; }
-    .hubimg { flex: none; width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: #eee; }
-    .hubbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-    .hubbody b { font-size: 15px; overflow-wrap: anywhere; }
-    .sub2 { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+    .app { padding: 12px 14px; margin-bottom: 10px; border-radius: 14px; }
+    .app-head h2 { font-size: 16px; }
+    .app-head { cursor: pointer; }
+    .badge, .stage { font-size: 11.5px; padding: 4px 9px; }
+    .sub { margin: 2px 0 0; font-size: 12.5px; }
+    .app .detail { margin-top: 10px; }
+    .app dl { font-size: 13px; gap: 3px 8px; grid-template-columns: 84px 1fr; }
+    .app .actions { margin-top: 12px; }
+    .app .btn { padding: 10px; font-size: 14px; }
+    .chev { flex: none; color: var(--muted); font-size: 14px; margin-left: 6px; }
+    .hubhead { align-items: center; }
+    .hubtitle { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .hubitems { margin-top: 8px; }
+    .hubitem { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+    .hubimg { flex: none; width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: #eee; }
+    .hubbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+    .hubbody b { font-size: 14px; overflow-wrap: anywhere; }
+    .sub2 { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+    .notel { margin: 0 0 4px 54px; }
+    .stage.mini { font-size: 11px; padding: 2px 8px; }
     .stage.wait { background: #fef3c7; color: var(--amber); }
-    .btn.small { flex: none; padding: 10px 14px; font-size: 14px; margin-top: 4px; }
+    .btn.small { flex: none; padding: 8px 12px; font-size: 13px; }
+    .btn.small.send { width: 100%; margin-top: 8px; padding: 11px; font-size: 14px; }
+    .linkbtn { background: none; border: 0; padding: 0 0 6px 54px; font: inherit; font-size: 12px; color: #1d4ed8; cursor: pointer; display: block; }
+    .hubnote { margin: 0 0 6px 54px; width: calc(100% - 54px); padding: 8px 10px; font-size: 13px; }
     #hubbar { margin-top: 10px; }
     #hubSearch { width: 100%; padding: 11px 12px; font-size: 15px; font-family: inherit; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
     .chips { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 2px; }
@@ -382,19 +400,18 @@
 
   function hubOrderCard(o) {
     const f = o.first;
-    const wrap = el("section", "app");
-    const head = el("div", "app-head");
-    head.appendChild(el("h2", "", "Order #" + String(o.id).slice(0, 8).toUpperCase()));
-    const done = o.sent;
-    head.appendChild(el("span", "stage " + (done === o.total ? "ok" : ""), done + " of " + o.total + " sent"));
+    const wrap = el("section", "app hubcard");
+    const head = el("div", "app-head hubhead");
+    const t = el("div", "hubtitle");
+    t.appendChild(el("h2", "", "#" + String(o.id).slice(0, 8).toUpperCase()));
+    t.appendChild(el("span", "sub2", [f.buyer_name, f.buyer_phone, f.delivery_address].filter(Boolean).join(" · ") || "No delivery details"));
+    head.appendChild(t);
+    head.appendChild(el("span", "stage " + (o.sent === o.total ? "ok" : ""), o.sent + "/" + o.total + " sent"));
     wrap.appendChild(head);
-    wrap.appendChild(el("p", "sub", o.atHub + " at the hub ready to send · " + o.toReceive + " on the way to the hub · " + o.notSent + " not sent by the seller yet"));
 
-    const dl = el("dl");
-    [["Buyer", f.buyer_name || "-"], ["Phone", f.buyer_phone || "-"], ["Address", f.delivery_address || "-"]].forEach((x) => {
-      dl.appendChild(el("dt", "", x[0])); dl.appendChild(el("dd", "", x[1]));
-    });
-    wrap.appendChild(dl);
+    const itemsBox = el("div", "hubitems");
+    head.addEventListener("click", () => { itemsBox.hidden = !itemsBox.hidden; });
+    wrap.appendChild(itemsBox);
 
     async function call(fn, args, button) {
       if (button) button.disabled = true;
@@ -410,33 +427,40 @@
       row.appendChild(img);
       const body = el("div", "hubbody");
       body.appendChild(el("b", "", r.product_name + (r.qty > 1 ? " × " + r.qty : "")));
-      body.appendChild(el("span", "sub2", (r.store || "?") + (r.size ? " · Size " + r.size : "") + (r.color ? " · " + r.color : "")));
+      body.appendChild(el("span", "sub2", [r.store || "?", r.size, r.color].filter(Boolean).join(" · ")));
       const st = itemState(r);
-      body.appendChild(el("span", "stage " + st[1], st[0]));
-      if (r.hub_note) body.appendChild(el("span", "sub2", "Note: " + r.hub_note));
-      if (r.shipped_at && !r.hub_received_at && !r.delivered_at) {
-        const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
-        input.placeholder = "Note (optional), e.g. box dented";
-        const b = el("button", "btn go small", "Received and checked");
+      body.appendChild(el("span", "stage mini " + st[1], st[0]));
+      row.appendChild(body);
+      const canReceive = r.shipped_at && !r.hub_received_at && !r.delivered_at;
+      let noteInput = null;
+      if (canReceive) {
+        const b = el("button", "btn go small", "Received");
         b.type = "button";
         b.addEventListener("click", async () => {
           const r1 = await call("admin_hub_set", { p_item_id: r.item_id, p_stage: "received", p_note: null }, b);
           if (r1 !== "ok" && r1 !== "already_done") { if (r1 !== false) { toast("Could not update: " + r1, true); b.disabled = false; } return; }
-          const r2 = await call("admin_hub_set", { p_item_id: r.item_id, p_stage: "checked", p_note: input.value }, b);
+          const r2 = await call("admin_hub_set", { p_item_id: r.item_id, p_stage: "checked", p_note: noteInput ? noteInput.value : "" }, b);
           if (r2 !== "ok" && r2 !== "already_done") { if (r2 !== false) { toast("Could not update: " + r2, true); b.disabled = false; } return; }
           toast("Item received.");
           loadHub();
         });
-        body.appendChild(input); body.appendChild(b);
+        row.appendChild(b);
       }
-      row.appendChild(body);
-      wrap.appendChild(row);
+      itemsBox.appendChild(row);
+      if (r.hub_note) itemsBox.appendChild(el("p", "sub2 notel", "Note: " + r.hub_note));
+      if (canReceive) {
+        const nb = el("button", "linkbtn", "+ add a note");
+        nb.type = "button";
+        noteInput = el("input", "hubnote"); noteInput.type = "text"; noteInput.maxLength = 300; noteInput.hidden = true;
+        noteInput.placeholder = "e.g. box dented";
+        nb.addEventListener("click", () => { noteInput.hidden = !noteInput.hidden; if (!noteInput.hidden) noteInput.focus(); });
+        itemsBox.appendChild(nb); itemsBox.appendChild(noteInput);
+      }
     });
 
     if (o.atHub) {
-      const actions = el("div", "actions");
       const complete = o.toReceive === 0 && o.notSent === 0;
-      const b = el("button", "btn " + (complete ? "pass" : "go"), complete ? "Send whole order to buyer" : "Send " + o.atHub + " of " + o.total + " items now");
+      const b = el("button", "btn small send " + (complete ? "pass" : "go"), complete ? "Send whole order to buyer" : "Send " + o.atHub + " of " + o.total + " now");
       b.type = "button";
       b.addEventListener("click", async () => {
         if (!complete && !confirm("Not every item is here yet. Send only the " + o.atHub + " that are at the hub?")) return;
@@ -445,8 +469,7 @@
         toast(n + " item(s) marked as sent to buyer.");
         loadHub();
       });
-      actions.appendChild(b);
-      wrap.appendChild(actions);
+      itemsBox.appendChild(b);
     }
     return wrap;
   }
@@ -481,6 +504,32 @@
     document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x === c));
     renderHub();
   }));
+
+  // Compact cards: show the name, status and a summary line; tap to open the details.
+  function compactCards() {
+    document.querySelectorAll("#list > .app:not(.hubcard)").forEach((card) => {
+      if (card.dataset.compact) return;
+      card.dataset.compact = "1";
+      const head = card.querySelector(".app-head");
+      if (!head) return;
+      const sub = card.querySelector(":scope > .sub");
+      const rest = [];
+      let n = sub ? sub.nextSibling : head.nextSibling;
+      while (n) { rest.push(n); n = n.nextSibling; }
+      const info = {};
+      card.querySelectorAll("dl dt").forEach((dt) => { info[dt.textContent] = dt.nextSibling ? dt.nextSibling.textContent : ""; });
+      if (sub) sub.textContent = [sub.textContent, info.City, info.Category].filter(Boolean).join(" · ");
+      const box = document.createElement("div");
+      box.className = "detail";
+      box.hidden = true;
+      rest.forEach((x) => box.appendChild(x));
+      card.appendChild(box);
+      const chev = el("span", "chev", "▾");
+      head.appendChild(chev);
+      head.addEventListener("click", () => { box.hidden = !box.hidden; chev.textContent = box.hidden ? "▾" : "▴"; });
+    });
+  }
+  new MutationObserver(compactCards).observe($("list"), { childList: true });
 
   async function load() {
     note("Loading...");
