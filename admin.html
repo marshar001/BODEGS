@@ -63,6 +63,13 @@
     .btn.pass { background: var(--green); color: #fff; }
     .btn.go { background: var(--ink); color: #fff; }
 
+    .hubitem { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); margin-top: 12px; }
+    .hubimg { flex: none; width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: #eee; }
+    .hubbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+    .hubbody b { font-size: 15px; overflow-wrap: anywhere; }
+    .sub2 { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+    .stage.wait { background: #fef3c7; color: var(--amber); }
+    .btn.small { flex: none; padding: 10px 14px; font-size: 14px; margin-top: 4px; }
     #hubbar { margin-top: 10px; }
     #hubSearch { width: 100%; padding: 11px 12px; font-size: 15px; font-family: inherit; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
     .chips { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 2px; }
@@ -90,9 +97,8 @@
     <input type="search" id="hubSearch" placeholder="Search order number, product, seller, phone" autocomplete="off">
     <div class="chips" id="hubChips">
       <button type="button" class="chip on" data-f="all">All</button>
-      <button type="button" class="chip" data-f="receive">To receive</button>
-      <button type="button" class="chip" data-f="check">To check</button>
-      <button type="button" class="chip" data-f="send">To send</button>
+      <button type="button" class="chip" data-f="receive">Waiting for items</button>
+      <button type="button" class="chip" data-f="send">Ready to send</button>
       <button type="button" class="chip" data-f="wait">With buyer</button>
     </div>
   </div>
@@ -344,92 +350,128 @@
     sr.data.forEach((s) => list.appendChild(sellerCard(s, contacts[s.owner_id], lastNote[s.id])));
   }
 
-  function hubStage(r) {
+  // ---------- Hub: one card per ORDER, listing every item from every seller ----------
+  let hubData = [], hubFilter = "all";
+
+  function itemState(r) {
+    if (r.delivered_at) return ["Delivered", "ok"];
     if (r.dispatched_at) return ["Sent to buyer", "ok"];
-    if (r.hub_result === "passed") return ["Checked, ready to send", "ok"];
-    if (r.hub_received_at) return ["Received at hub, needs a check", ""];
-    return ["Seller says it is sent, not received yet", ""];
+    if (r.hub_result) return ["At hub, checked", "ok"];
+    if (r.hub_received_at) return ["At hub", ""];
+    if (r.shipped_at) return ["On its way to hub", "wait"];
+    return ["Seller has not sent it", "bad"];
   }
 
-  function hubCard(r) {
+  function groupOrders(rows) {
+    const map = new Map();
+    rows.forEach((r) => {
+      if (!map.has(r.order_id)) map.set(r.order_id, { id: r.order_id, items: [], first: r });
+      map.get(r.order_id).items.push(r);
+    });
+    return Array.from(map.values()).map((o) => {
+      const open = o.items.filter((i) => !i.delivered_at);
+      o.total = o.items.length;
+      o.atHub = o.items.filter((i) => i.hub_result && !i.dispatched_at && !i.delivered_at).length;
+      o.toReceive = o.items.filter((i) => i.shipped_at && !i.hub_received_at && !i.delivered_at).length;
+      o.notSent = o.items.filter((i) => !i.shipped_at).length;
+      o.sent = o.items.filter((i) => i.dispatched_at || i.delivered_at).length;
+      o.group = o.atHub ? "send" : o.toReceive ? "receive" : open.length && open.every((i) => i.dispatched_at) ? "wait" : "receive";
+      return o;
+    });
+  }
+
+  function hubOrderCard(o) {
+    const f = o.first;
     const wrap = el("section", "app");
     const head = el("div", "app-head");
-    head.appendChild(el("h2", "", r.product_name + " × " + r.qty));
-    const st = hubStage(r);
-    head.appendChild(el("span", "stage " + st[1], st[0]));
+    head.appendChild(el("h2", "", "Order #" + String(o.id).slice(0, 8).toUpperCase()));
+    const done = o.sent;
+    head.appendChild(el("span", "stage " + (done === o.total ? "ok" : ""), done + " of " + o.total + " sent"));
     wrap.appendChild(head);
-    wrap.appendChild(el("p", "sub", "Seller: " + (r.store || "?") + (r.size ? " · Size " + r.size : "") + (r.color ? " · " + r.color : "")));
+    wrap.appendChild(el("p", "sub", o.atHub + " at the hub ready to send · " + o.toReceive + " on the way to the hub · " + o.notSent + " not sent by the seller yet"));
+
     const dl = el("dl");
-    [["Order", "#" + String(r.order_id).slice(0, 8).toUpperCase()], ["Buyer", r.buyer_name || "-"], ["Phone", r.buyer_phone || "-"],
-     ["Address", r.delivery_address || "-"], ["Seller sent", new Date(r.shipped_at).toLocaleString()]].forEach((x) => {
+    [["Buyer", f.buyer_name || "-"], ["Phone", f.buyer_phone || "-"], ["Address", f.delivery_address || "-"]].forEach((x) => {
       dl.appendChild(el("dt", "", x[0])); dl.appendChild(el("dd", "", x[1]));
     });
     wrap.appendChild(dl);
-    if (r.hub_note) wrap.appendChild(el("p", "reason", "Hub note: " + r.hub_note));
 
-    async function set(stage, button, noteText) {
-      button.disabled = true;
-      const { data, error } = await sb.rpc("admin_hub_set", { p_item_id: r.item_id, p_stage: stage, p_note: noteText || null });
-      if (error || (data !== "ok" && data !== "already_done")) {
-        toast("Could not update: " + (error ? error.message : data), true);
-        button.disabled = false;
-        return;
+    async function call(fn, args, button) {
+      if (button) button.disabled = true;
+      const { data, error } = await sb.rpc(fn, args);
+      if (error) { toast("Could not update: " + error.message, true); if (button) button.disabled = false; return false; }
+      return data;
+    }
+
+    o.items.forEach((r) => {
+      const row = el("div", "hubitem");
+      const img = el("img", "hubimg"); img.alt = ""; img.loading = "lazy";
+      if (r.image) img.src = r.image;
+      row.appendChild(img);
+      const body = el("div", "hubbody");
+      body.appendChild(el("b", "", r.product_name + (r.qty > 1 ? " × " + r.qty : "")));
+      body.appendChild(el("span", "sub2", (r.store || "?") + (r.size ? " · Size " + r.size : "") + (r.color ? " · " + r.color : "")));
+      const st = itemState(r);
+      body.appendChild(el("span", "stage " + st[1], st[0]));
+      if (r.hub_note) body.appendChild(el("span", "sub2", "Note: " + r.hub_note));
+      if (r.shipped_at && !r.hub_received_at && !r.delivered_at) {
+        const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
+        input.placeholder = "Note (optional), e.g. box dented";
+        const b = el("button", "btn go small", "Received and checked");
+        b.type = "button";
+        b.addEventListener("click", async () => {
+          const r1 = await call("admin_hub_set", { p_item_id: r.item_id, p_stage: "received", p_note: null }, b);
+          if (r1 !== "ok" && r1 !== "already_done") { if (r1 !== false) { toast("Could not update: " + r1, true); b.disabled = false; } return; }
+          const r2 = await call("admin_hub_set", { p_item_id: r.item_id, p_stage: "checked", p_note: input.value }, b);
+          if (r2 !== "ok" && r2 !== "already_done") { if (r2 !== false) { toast("Could not update: " + r2, true); b.disabled = false; } return; }
+          toast("Item received.");
+          loadHub();
+        });
+        body.appendChild(input); body.appendChild(b);
       }
-      toast("Updated.");
-      loadHub();
-    }
+      row.appendChild(body);
+      wrap.appendChild(row);
+    });
 
-    const actions = el("div", "actions");
-    if (!r.hub_received_at) {
-      const b = el("button", "btn go", "Mark as received at hub");
-      b.type = "button"; b.addEventListener("click", () => set("received", b));
+    if (o.atHub) {
+      const actions = el("div", "actions");
+      const complete = o.toReceive === 0 && o.notSent === 0;
+      const b = el("button", "btn " + (complete ? "pass" : "go"), complete ? "Send whole order to buyer" : "Send " + o.atHub + " of " + o.total + " items now");
+      b.type = "button";
+      b.addEventListener("click", async () => {
+        if (!complete && !confirm("Not every item is here yet. Send only the " + o.atHub + " that are at the hub?")) return;
+        const n = await call("admin_hub_dispatch_order", { p_order_id: o.id }, b);
+        if (n === false) return;
+        toast(n + " item(s) marked as sent to buyer.");
+        loadHub();
+      });
       actions.appendChild(b);
-    } else if (!r.hub_result) {
-      const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
-      input.placeholder = "Note (optional), e.g. box dented";
-      wrap.appendChild(input);
-      const ok = el("button", "btn pass", "Checked");
-      ok.type = "button";
-      ok.addEventListener("click", () => set("checked", ok, input.value));
-      actions.appendChild(ok);
-    } else if (!r.dispatched_at) {
-      const b = el("button", "btn go", "Mark as sent to buyer");
-      b.type = "button"; b.addEventListener("click", () => set("dispatched", b));
-      actions.appendChild(b);
-    } else {
-      wrap.appendChild(el("p", "sub", "Waiting for the buyer to confirm, or it confirms itself 7 days after it was sent."));
+      wrap.appendChild(actions);
     }
-    if (actions.children.length) wrap.appendChild(actions);
     return wrap;
   }
 
-  let hubData = [], hubFilter = "all";
-  function hubGroup(r) {
-    if (r.dispatched_at) return "wait";
-    if (r.hub_result === "passed") return "send";
-    if (r.hub_received_at) return "check";
-    return "receive";
-  }
   function renderHub() {
     const q = $("hubSearch").value.trim().toLowerCase().replace(/^#/, "");
-    const rows = hubData.filter((r) => {
-      if (hubFilter !== "all" && hubGroup(r) !== hubFilter) return false;
+    const orders = groupOrders(hubData).filter((o) => {
+      if (hubFilter !== "all" && o.group !== hubFilter) return false;
       if (!q) return true;
-      return [r.order_id, r.item_id, r.product_name, r.store, r.buyer_name, r.buyer_phone, r.delivery_address]
-        .some((v) => String(v || "").toLowerCase().includes(q));
+      return o.items.some((r) => [r.order_id, r.item_id, r.product_name, r.store, r.buyer_name, r.buyer_phone, r.delivery_address]
+        .some((v) => String(v || "").toLowerCase().includes(q)));
     });
     const list = $("list");
     list.textContent = "";
     if (!hubData.length) { note("Nothing at the hub right now."); return; }
-    if (!rows.length) { note("Nothing matches. Clear the search or choose All."); return; }
-    list.appendChild(el("p", "sub", rows.length + " of " + hubData.length + " items"));
-    rows.forEach((r) => list.appendChild(hubCard(r)));
+    if (!orders.length) { note("Nothing matches. Clear the search or choose All."); return; }
+    list.appendChild(el("p", "sub", orders.length + " order(s)"));
+    orders.forEach((o) => list.appendChild(hubOrderCard(o)));
   }
+
   async function loadHub() {
     const { data, error } = await sb.rpc("admin_hub_queue");
     if (error) { note("Could not load the hub list: " + error.message, true); return; }
     hubData = data;
-    const todo = data.filter((r) => !r.dispatched_at).length;
+    const todo = groupOrders(data).filter((o) => o.group !== "wait").length;
     $("cHub").textContent = todo ? "(" + todo + ")" : "";
     renderHub();
   }
