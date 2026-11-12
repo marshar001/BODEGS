@@ -345,10 +345,9 @@
   }
 
   function hubStage(r) {
-    if (r.hub_result === "rejected") return ["Rejected at the hub", "bad"];
     if (r.dispatched_at) return ["Sent to buyer", "ok"];
-    if (r.hub_result === "passed") return ["Passed the check", "ok"];
-    if (r.hub_received_at) return ["Received at hub, needs checking", ""];
+    if (r.hub_result === "passed") return ["Checked, ready to send", "ok"];
+    if (r.hub_received_at) return ["Received at hub, needs a check", ""];
     return ["Seller says it is sent, not received yet", ""];
   }
 
@@ -381,26 +380,18 @@
     }
 
     const actions = el("div", "actions");
-    if (r.hub_result === "rejected") {
-      wrap.appendChild(el("p", "warn", "This item was rejected. The buyer must be refunded for it (refund button comes in the next step)."));
-    } else if (!r.hub_received_at) {
+    if (!r.hub_received_at) {
       const b = el("button", "btn go", "Mark as received at hub");
       b.type = "button"; b.addEventListener("click", () => set("received", b));
       actions.appendChild(b);
     } else if (!r.hub_result) {
       const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
-      input.placeholder = "Note (required if rejecting)";
+      input.placeholder = "Note (optional), e.g. box dented";
       wrap.appendChild(input);
-      const pass = el("button", "btn pass", "Passed");
-      const rej = el("button", "btn reject", "Rejected");
-      pass.type = rej.type = "button";
-      pass.addEventListener("click", () => set("passed", pass, input.value));
-      rej.addEventListener("click", () => {
-        if (!input.value.trim()) { toast("Write why you are rejecting it.", true); return; }
-        if (!confirm("Reject this item? The buyer will be refunded and the seller gets no payout for it.")) return;
-        set("rejected", rej, input.value);
-      });
-      actions.appendChild(pass); actions.appendChild(rej);
+      const ok = el("button", "btn pass", "Checked");
+      ok.type = "button";
+      ok.addEventListener("click", () => set("checked", ok, input.value));
+      actions.appendChild(ok);
     } else if (!r.dispatched_at) {
       const b = el("button", "btn go", "Mark as sent to buyer");
       b.type = "button"; b.addEventListener("click", () => set("dispatched", b));
@@ -414,7 +405,6 @@
 
   let hubData = [], hubFilter = "all";
   function hubGroup(r) {
-    if (r.hub_result === "rejected") return "check";
     if (r.dispatched_at) return "wait";
     if (r.hub_result === "passed") return "send";
     if (r.hub_received_at) return "check";
@@ -439,7 +429,7 @@
     const { data, error } = await sb.rpc("admin_hub_queue");
     if (error) { note("Could not load the hub list: " + error.message, true); return; }
     hubData = data;
-    const todo = data.filter((r) => !r.dispatched_at && r.hub_result !== "rejected").length;
+    const todo = data.filter((r) => !r.dispatched_at).length;
     $("cHub").textContent = todo ? "(" + todo + ")" : "";
     renderHub();
   }
