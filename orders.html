@@ -1308,7 +1308,7 @@
         </div>
         <div class="od-section">
           <h3>PAYMENT</h3>
-          <div class="od-row"><span>Status</span><span>${order.paid ? "Paid" : cancelled ? "Not paid" : "Awaiting payment"}</span></div>
+          <div class="od-row"><span>Status</span><span>${order.paid ? "Paid" : (cancelled && order.refundAmount) ? "Paid, then refunded" : cancelled ? "Not paid" : "Awaiting payment"}</span></div>
           <div class="od-row"><span>Total</span><strong>${formatMoney(order.total)}</strong></div>
         </div>
         ${cancelled && order.refundAmount ? `
