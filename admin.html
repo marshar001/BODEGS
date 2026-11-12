@@ -55,6 +55,13 @@
     .btn:disabled { opacity: .55; }
     .warn { margin-top: 12px; font-size: 13px; color: var(--amber); background: #fffbeb; border: 1px solid #fde68a; padding: 10px 12px; border-radius: 10px; overflow-wrap: anywhere; }
     .reason { margin-top: 12px; font-size: 13px; color: var(--red); background: #fef2f2; padding: 10px 12px; border-radius: 10px; overflow-wrap: anywhere; }
+
+    .stage { display: inline-block; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; background: #e0e7ff; color: #3730a3; }
+    .stage.bad { background: #fee2e2; color: var(--red); }
+    .stage.ok { background: #dcfce7; color: var(--green); }
+    .hubnote { width: 100%; margin-top: 12px; padding: 11px 12px; font-size: 14px; font-family: inherit; border: 1.5px solid var(--line); border-radius: 10px; }
+    .btn.pass { background: var(--green); color: #fff; }
+    .btn.go { background: var(--ink); color: #fff; }
     #toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 440px; margin: 0 auto; padding: 13px 15px; border-radius: 12px; font-size: 14px; background: #111; color: #fff; z-index: 9; }
     #toast.err { background: var(--red); }
   </style>
@@ -71,6 +78,7 @@
     <button type="button" class="tab" data-status="approved">Approved</button>
     <button type="button" class="tab" data-status="rejected">Rejected</button>
     <button type="button" class="tab" data-status="sellers">Sellers</button>
+    <button type="button" class="tab" data-status="hub">Hub <span id="cHub"></span></button>
   </div>
 </header>
 
@@ -320,8 +328,88 @@
     sr.data.forEach((s) => list.appendChild(sellerCard(s, contacts[s.owner_id], lastNote[s.id])));
   }
 
+  function hubStage(r) {
+    if (r.hub_result === "rejected") return ["Rejected at the hub", "bad"];
+    if (r.dispatched_at) return ["Sent to buyer", "ok"];
+    if (r.hub_result === "passed") return ["Passed the check", "ok"];
+    if (r.hub_received_at) return ["Received at hub, needs checking", ""];
+    return ["Seller says it is sent, not received yet", ""];
+  }
+
+  function hubCard(r) {
+    const wrap = el("section", "app");
+    const head = el("div", "app-head");
+    head.appendChild(el("h2", "", r.product_name + " × " + r.qty));
+    const st = hubStage(r);
+    head.appendChild(el("span", "stage " + st[1], st[0]));
+    wrap.appendChild(head);
+    wrap.appendChild(el("p", "sub", "Seller: " + (r.store || "?") + (r.size ? " · Size " + r.size : "") + (r.color ? " · " + r.color : "")));
+    const dl = el("dl");
+    [["Order", String(r.order_id).slice(0, 8)], ["Buyer", r.buyer_name || "-"], ["Phone", r.buyer_phone || "-"],
+     ["Address", r.delivery_address || "-"], ["Seller sent", new Date(r.shipped_at).toLocaleString()]].forEach((x) => {
+      dl.appendChild(el("dt", "", x[0])); dl.appendChild(el("dd", "", x[1]));
+    });
+    wrap.appendChild(dl);
+    if (r.hub_note) wrap.appendChild(el("p", "reason", "Hub note: " + r.hub_note));
+
+    async function set(stage, button, noteText) {
+      button.disabled = true;
+      const { data, error } = await sb.rpc("admin_hub_set", { p_item_id: r.item_id, p_stage: stage, p_note: noteText || null });
+      if (error || (data !== "ok" && data !== "already_done")) {
+        toast("Could not update: " + (error ? error.message : data), true);
+        button.disabled = false;
+        return;
+      }
+      toast("Updated.");
+      loadHub();
+    }
+
+    const actions = el("div", "actions");
+    if (r.hub_result === "rejected") {
+      wrap.appendChild(el("p", "warn", "This item was rejected. The buyer must be refunded for it (refund button comes in the next step)."));
+    } else if (!r.hub_received_at) {
+      const b = el("button", "btn go", "Mark as received at hub");
+      b.type = "button"; b.addEventListener("click", () => set("received", b));
+      actions.appendChild(b);
+    } else if (!r.hub_result) {
+      const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
+      input.placeholder = "Note (required if rejecting)";
+      wrap.appendChild(input);
+      const pass = el("button", "btn pass", "Passed");
+      const rej = el("button", "btn reject", "Rejected");
+      pass.type = rej.type = "button";
+      pass.addEventListener("click", () => set("passed", pass, input.value));
+      rej.addEventListener("click", () => {
+        if (!input.value.trim()) { toast("Write why you are rejecting it.", true); return; }
+        if (!confirm("Reject this item? The buyer will be refunded and the seller gets no payout for it.")) return;
+        set("rejected", rej, input.value);
+      });
+      actions.appendChild(pass); actions.appendChild(rej);
+    } else if (!r.dispatched_at) {
+      const b = el("button", "btn go", "Mark as sent to buyer");
+      b.type = "button"; b.addEventListener("click", () => set("dispatched", b));
+      actions.appendChild(b);
+    } else {
+      wrap.appendChild(el("p", "sub", "Waiting for the buyer to confirm, or it confirms itself 7 days after it was sent."));
+    }
+    if (actions.children.length) wrap.appendChild(actions);
+    return wrap;
+  }
+
+  async function loadHub() {
+    const { data, error } = await sb.rpc("admin_hub_queue");
+    if (error) { note("Could not load the hub list: " + error.message, true); return; }
+    const todo = data.filter((r) => !r.dispatched_at && r.hub_result !== "rejected").length;
+    $("cHub").textContent = todo ? "(" + todo + ")" : "";
+    const list = $("list");
+    list.textContent = "";
+    if (!data.length) { note("Nothing at the hub right now."); return; }
+    data.forEach((r) => list.appendChild(hubCard(r)));
+  }
+
   async function load() {
     note("Loading...");
+    if (status === "hub") { return loadHub(); }
     if (status === "sellers") { return loadSellers(); }
     const { data, error } = await sb
       .from("seller_applications")
