@@ -33,6 +33,23 @@
     [data-theme="dark"] #placeDemoOrder { background:#2f6a58 !important; color:#fff !important; }
     [data-theme="dark"] #placeDemoOrder:disabled { background:#3a3a3a !important; color:#8a8a8a !important; }
     #payHint { font-size:13px; text-align:center; opacity:.7; margin:8px 0 0; min-height:1em; }
+    .ps-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
+    .ps-backdrop[hidden] { display:none; }
+    .ps-card { background:#fff; color:#1b1b1b; width:100%; max-width:380px; border-radius:22px; padding:26px 22px 20px; text-align:center; box-sizing:border-box; }
+    .ps-icon { width:64px; height:64px; border-radius:50%; background:#dcebe3; color:#173b32; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+    .ps-icon svg { width:32px; height:32px; fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+    .ps-card h3 { margin:0 0 6px; font-size:21px; }
+    .ps-card p { margin:0 0 4px; font-size:14.5px; line-height:1.5; color:#5d6a64; }
+    .ps-card .ps-total { font-size:26px; font-weight:800; color:#173b32; margin:10px 0 14px; }
+    .ps-view, .ps-more { display:block; width:100%; border-radius:999px; padding:14px; font:inherit; font-size:15.5px; font-weight:700; cursor:pointer; box-sizing:border-box; }
+    .ps-view { background:#173b32; color:#fff; border:0; margin-bottom:10px; }
+    .ps-more { background:transparent; color:#173b32; border:1.5px solid rgba(23,59,50,.35); }
+    [data-theme="dark"] .ps-card { background:#1d1d1d; color:#f0f0f0; }
+    [data-theme="dark"] .ps-card p { color:#a8b3ad; }
+    [data-theme="dark"] .ps-icon { background:#24473c; color:#bfe6d4; }
+    [data-theme="dark"] .ps-card .ps-total { color:#bfe6d4; }
+    [data-theme="dark"] .ps-view { background:#2f6a58 !important; color:#fff !important; }
+    [data-theme="dark"] .ps-more { color:#bfe6d4 !important; border-color:rgba(255,255,255,.25) !important; }
     .ad-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:900; display:flex; align-items:flex-end; justify-content:center; }
     .ad-backdrop[hidden] { display:none; }
     .ad-sheet { background:#fff; color:#1b1b1b; width:100%; max-width:560px; max-height:88vh; overflow-y:auto; border-radius:20px 20px 0 0; padding:18px 18px 24px; box-sizing:border-box; }
@@ -123,6 +140,16 @@
     <p id="payHint"></p>
     <p id="checkoutMessage" role="status" aria-live="polite"></p>
 
+    <div class="ps-backdrop" id="psBackdrop" hidden>
+      <div class="ps-card" role="dialog" aria-modal="true" aria-labelledby="psTitle">
+        <div class="ps-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <h3 id="psTitle">Payment successful</h3>
+        <p id="psText"></p>
+        <div class="ps-total" id="psTotal"></div>
+        <button type="button" class="ps-view dk-skip" id="psView">View my order</button>
+        <button type="button" class="ps-more dk-skip" id="psMore">Continue shopping</button>
+      </div>
+    </div>
     <div class="ad-backdrop" id="adBackdrop" hidden><div class="ad-sheet" id="adSheet"></div></div>
 
   </main>
@@ -405,6 +432,30 @@
     const placeDemoOrderButton =
       document.getElementById("placeDemoOrder");
 
+
+    // Shown after the Paystack pop-up closes: tells the buyer what happened and where to go next.
+    function showPaySuccess(orderId, total, state) {
+      var code = "BOD-" + String(orderId).replace(/-/g, "").slice(0, 8).toUpperCase();
+      var naira = "\u20A6" + Number(total).toLocaleString("en-NG");
+      var title = document.getElementById("psTitle");
+      var text = document.getElementById("psText");
+      if (state === "paid") {
+        title.textContent = "Payment successful";
+        text.textContent = "Thank you! Your order " + code + " has been placed. You can follow it in My Orders.";
+      } else if (state === "cancelled") {
+        title.textContent = "Payment received";
+        text.textContent = "Order " + code + " had been cancelled, so we will refund this payment. Please contact BODEGS support if you do not see it soon.";
+      } else {
+        title.textContent = "Payment received";
+        text.textContent = "We are confirming order " + code + ". It will show as Paid in My Orders in a few minutes.";
+      }
+      document.getElementById("psTotal").textContent = naira;
+      document.getElementById("psBackdrop").hidden = false;
+      document.getElementById("psView").onclick = function () { window.location.href = "orders.html"; };
+      document.getElementById("psMore").onclick = function () { window.location.href = "index.html"; };
+    }
+    window.showPaySuccess = showPaySuccess;
+
     const checkoutMessage =
       document.getElementById("checkoutMessage");
 
@@ -530,20 +581,18 @@
           metadata: { order_id: pendingOrder.id },
           onSuccess: async function () {
             checkoutMessage.textContent = "Confirming your payment...";
-            let paid = false;
+            let paid = false, cancelledFlag = false;
             try {
               const res = await sb.functions.invoke("verify-payment", {
                 body: { reference: reference, order_id: pendingOrder.id }
               });
               paid = !!(res.data && res.data.paid);
+              cancelledFlag = !!(res.data && res.data.cancelled);
             } catch (e) { /* handled below */ }
 
             // The order is saved, so the cart is cleared either way.
             localStorage.removeItem("weraeCart");
-            if (!paid) {
-              alert("We received your payment and are confirming it. Please check My Orders in a few minutes.");
-            }
-            window.location.href = "orders.html";
+            showPaySuccess(pendingOrder.id, found.data.total, paid ? "paid" : (cancelledFlag ? "cancelled" : "confirming"));
           },
           onCancel: function () {
             checkoutMessage.textContent = "Payment cancelled. Tap Pay now when you are ready.";
