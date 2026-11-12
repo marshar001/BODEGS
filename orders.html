@@ -1005,16 +1005,17 @@
       if (!order.paid) return { key: "pending", label: "Pending" };
       const lines = Array.isArray(order.products) ? order.products : [];
       if (lines.length && lines.every(p => p.delivered)) return { key: "delivered", label: "Delivered" };
-      if (lines.length && lines.some(p => p.shipped)) return { key: "shipped", label: "Shipped" };
+      if (lines.length && lines.some(p => p.dispatched)) return { key: "shipped", label: "On its way" };
+      if (lines.length && lines.some(p => p.atHub)) return { key: "processing", label: "At our hub", css: "paid" };
       if (base === "pending") return { key: "processing", label: "Paid", css: "paid" };
       return { key: base, label: base.charAt(0).toUpperCase() + base.slice(1) };
     }
 
-    // True when something has been shipped and the buyer has not yet confirmed it arrived.
+    // True when BODEGS has sent something to the buyer and the buyer has not yet confirmed it arrived.
     function canConfirmReceipt(order) {
       if (!order.paid || normaliseStatus(order.status) === "cancelled") return false;
       const lines = Array.isArray(order.products) ? order.products : [];
-      return lines.some(p => p.shipped && !p.delivered);
+      return lines.some(p => p.dispatched && !p.delivered);
     }
 
     function formatDate(value) {
@@ -1243,18 +1244,25 @@
         const d = new Date(value);
         return isNaN(d) ? "" : d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
       };
-      const shippedTimes = order.products.map(p => p.shippedAt).filter(Boolean).sort();
+      const onTheWay = order.products.some(p => p.dispatched);
+      const dispatchedTimes = order.products.map(p => p.dispatchedAt).filter(Boolean).sort();
+      const hubTimes = order.products.map(p => p.hubAt).filter(Boolean).sort();
+      const atHubCount = order.products.filter(p => p.atHub).length;
+      const sentCount = order.products.filter(p => p.shipped).length;
       const deliveredTimes = order.products.map(p => p.deliveredAt).filter(Boolean).sort();
       const events = [];
       if (delivered) events.push(["Delivered", "You confirmed that your order arrived", when(deliveredTimes[deliveredTimes.length - 1])]);
-      if (shipped) events.push(["Shipped", "Your order is on its way", when(shippedTimes[shippedTimes.length - 1])]);
+      if (onTheWay) events.push(["On its way to you", order.products.every(p => p.dispatched || p.delivered) ? "BODEGS has sent your order" : "BODEGS has sent part of your order", when(dispatchedTimes[dispatchedTimes.length - 1])]);
+      if (atHubCount) events.push(["At our hub", atHubCount + " of " + order.products.length + " item(s) received and checked", when(hubTimes[hubTimes.length - 1])]);
+      else if (sentCount) events.push(["Sellers are sending your items", sentCount + " of " + order.products.length + " item(s) sent to our hub", ""]);
       if (order.paid) events.push(["Payment confirmed", "We received your payment", ""]);
       if (cancelled) events.unshift(["Cancelled", "This order was cancelled", ""]);
       events.push(["Order placed", order.paid || cancelled ? "" : "Waiting for your payment", when(order.createdAt)]);
 
       const bannerText = cancelled ? "Cancelled"
         : delivered ? "Delivered"
-        : shipped ? "Shipped"
+        : onTheWay ? "On its way to you"
+        : atHubCount ? "At our hub · getting your order ready"
         : order.paid ? "Paid · preparing your order"
         : "Awaiting payment";
       const bannerClass = cancelled ? "cancelled" : (order.paid ? "good" : "wait");
@@ -1506,7 +1514,7 @@
         .from("orders")
         .select(
           "id, status, payment_status, total, created_at, customer_name, phone, delivery_address, city, cancel_fee, refund_amount, " +
-          "order_items(qty, price_at_purchase, product_name, product_image, size, color, shipped_at, delivered_at)"
+          "order_items(qty, price_at_purchase, product_name, product_image, size, color, shipped_at, delivered_at, hub_received_at, dispatched_at)"
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -1540,6 +1548,10 @@
           color: item.color,
           shipped: !!item.shipped_at,
           shippedAt: item.shipped_at,
+          atHub: !!item.hub_received_at,
+          hubAt: item.hub_received_at,
+          dispatched: !!item.dispatched_at,
+          dispatchedAt: item.dispatched_at,
           delivered: !!item.delivered_at,
           deliveredAt: item.delivered_at
         }))
