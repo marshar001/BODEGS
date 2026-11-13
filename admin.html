@@ -110,6 +110,7 @@
     <button type="button" class="tab" data-status="rejected">Rejected</button>
     <button type="button" class="tab" data-status="sellers">Sellers</button>
     <button type="button" class="tab" data-status="hub">Hub <span id="cHub"></span></button>
+    <button type="button" class="tab" data-status="reports">Reports <span id="cRep"></span></button>
   </div>
   <div id="hubbar" hidden>
     <input type="search" id="hubSearch" placeholder="Search order number, product, seller, phone" autocomplete="off">
@@ -531,10 +532,75 @@
   }
   new MutationObserver(compactCards).observe($("list"), { childList: true });
 
+  // ---------- Reports: buyer problem reports ----------
+  function reportCard(r) {
+    const wrap = el("section", "app hubcard");
+    const head = el("div", "app-head");
+    head.appendChild(el("h2", "", r.product_name + (r.qty > 1 ? " × " + r.qty : "")));
+    const labels = { open: ["Open", ""], refund_due: ["Refund due", "wait"], refunded: ["Refunded", "ok"], dismissed: ["Dismissed", "ok"] };
+    const lb = labels[r.status] || [r.status, ""];
+    head.appendChild(el("span", "stage " + lb[1], lb[0]));
+    wrap.appendChild(head);
+    const row = el("div", "hubitem");
+    const img = el("img", "hubimg"); img.alt = ""; img.loading = "lazy";
+    if (r.image) img.src = r.image;
+    row.appendChild(img);
+    const body = el("div", "hubbody");
+    body.appendChild(el("b", "", "₦" + Number(r.amount || 0).toLocaleString("en-NG")));
+    body.appendChild(el("span", "sub2", (r.store || "?") + (r.size ? " · " + r.size : "") + (r.color ? " · " + r.color : "")));
+    body.appendChild(el("span", "sub2", "Order #" + String(r.order_id).slice(0, 8).toUpperCase()));
+    row.appendChild(body);
+    wrap.appendChild(row);
+    const meta = el("p", "hubmeta");
+    meta.appendChild(el("b", "", r.reason));
+    meta.appendChild(document.createTextNode(" · " + (r.buyer_name || "Buyer") + " · " + (r.buyer_phone || "-") + " · " + new Date(r.created_at).toLocaleDateString()));
+    wrap.appendChild(meta);
+    if (r.details) wrap.appendChild(el("p", "hubmeta", "“" + r.details + "”"));
+    if (r.admin_note) wrap.appendChild(el("p", "hubmeta", "Your note: " + r.admin_note));
+    if (r.status === "refund_due") wrap.appendChild(el("p", "hubmeta", "Refund approved. Sending the money back to the buyer is the next step we build; until then refund this in Paystack by hand."));
+    if (r.status === "open") {
+      const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
+      input.placeholder = "Note (optional)";
+      input.style.marginTop = "8px";
+      wrap.appendChild(input);
+      const actions = el("div", "actions");
+      async function decide(decision, btn) {
+        const q = decision === "refund"
+          ? "Refund the buyer for this item? The seller will not be paid for it."
+          : "Dismiss this report? The seller will be paid for this item.";
+        if (!confirm(q)) return;
+        btn.disabled = true;
+        const { data, error } = await sb.rpc("admin_resolve_report", { p_report_id: r.report_id, p_decision: decision, p_note: input.value });
+        if (error || data !== "ok") { toast("Could not update: " + (error ? error.message : data), true); btn.disabled = false; return; }
+        toast("Done.");
+        loadReports();
+      }
+      const ref = el("button", "btn reject", "Refund buyer"); ref.type = "button";
+      const dis = el("button", "btn go", "Dismiss"); dis.type = "button";
+      ref.addEventListener("click", () => decide("refund", ref));
+      dis.addEventListener("click", () => decide("dismiss", dis));
+      actions.appendChild(ref); actions.appendChild(dis);
+      wrap.appendChild(actions);
+    }
+    return wrap;
+  }
+
+  async function loadReports() {
+    const { data, error } = await sb.rpc("admin_reports_list");
+    if (error) { note("Could not load reports: " + error.message, true); return; }
+    const open = data.filter((r) => r.status === "open").length;
+    $("cRep").textContent = open ? "(" + open + ")" : "";
+    const list = $("list");
+    list.textContent = "";
+    if (!data.length) { note("No problem reports."); return; }
+    data.forEach((r) => list.appendChild(reportCard(r)));
+  }
+
   async function load() {
     note("Loading...");
     $("hubbar").hidden = status !== "hub";
     if (status === "hub") { return loadHub(); }
+    if (status === "reports") { return loadReports(); }
     if (status === "sellers") { return loadSellers(); }
     const { data, error } = await sb
       .from("seller_applications")
