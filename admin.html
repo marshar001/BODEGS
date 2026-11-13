@@ -15,9 +15,53 @@
     .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .top h1 { font-size: 17px; margin: 0; }
     .top a { color: var(--muted); font-size: 14px; text-decoration: none; }
-    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
-    .tab { padding: 8px 4px; font-size: 13px; white-space: nowrap; font-family: inherit; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; cursor: pointer; color: var(--ink); }
-    .tab.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .top { justify-content: flex-start; }
+    .top h1 { flex: 1; }
+    .menubtn { flex: none; width: 40px; height: 40px; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; cursor: pointer; padding: 0; }
+    .menubtn i { display: block; width: 18px; height: 2px; background: var(--ink); border-radius: 2px; }
+    #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; }
+    .drawer { position: fixed; top: 0; bottom: 0; left: 0; width: 80%; max-width: 300px; background: #fff; z-index: 21; padding: 18px 12px; transform: translateX(-105%); transition: transform .22s ease; overflow-y: auto; box-shadow: 2px 0 14px rgba(0,0,0,.15); }
+    .drawer.open { transform: none; }
+    .drawer h3 { margin: 4px 8px 14px; font-size: 17px; }
+    .tab { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 13px 12px; margin: 2px 0; font-size: 15px; text-align: left; font-family: inherit; border: 0; background: transparent; border-radius: 10px; cursor: pointer; color: var(--ink); }
+    .tab.on { background: var(--ink); color: #fff; }
+    .tab .cnt { font-size: 12px; font-weight: 700; background: #ef4444; color: #fff; border-radius: 99px; padding: 2px 8px; }
+    .tab .cnt:empty { display: none; }
+    .tab hr { display: none; }
+    .drawer .sep { height: 1px; background: var(--line); margin: 8px 10px; }
+    #attn { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    #attn button { border: 0; border-radius: 99px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 700; background: #fee2e2; color: #991b1b; cursor: pointer; }
+    #attn button.soft { background: #e0e7ff; color: #3730a3; }
+    .home { display: flex; flex-direction: column; gap: 12px; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tile { background: #fff; border: 0; border-radius: 14px; padding: 12px; text-align: left; font-family: inherit; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .tile .n { font-size: 24px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+    .tile .l { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .tile .h { font-size: 11px; color: #6366f1; margin-top: 4px; }
+    .card { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .card h2 { margin: 0 0 4px; font-size: 15px; }
+    .seg { display: flex; gap: 6px; margin-bottom: 8px; }
+    .seg button { flex: 1; padding: 8px; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; font: inherit; font-size: 13px; cursor: pointer; }
+    .seg button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+    .slides::-webkit-scrollbar { display: none; }
+    .slide { flex: 0 0 100%; scroll-snap-align: start; }
+    .slide svg { width: 100%; height: auto; display: block; }
+    .cap { font-size: 12.5px; color: var(--muted); line-height: 1.5; min-height: 38px; }
+    .cap b { color: var(--ink); }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin: 4px 0; }
+    .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; }
+    .meter { margin: 10px 0; }
+    .meter .row { display: flex; justify-content: space-between; font-size: 13px; }
+    .meter .bar { height: 8px; background: #eceef2; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+    .meter .bar i { display: block; height: 100%; background: #22c55e; border-radius: 99px; }
+    .meter .bar i.warn { background: #f59e0b; } .meter .bar i.bad { background: #ef4444; }
+    .costform { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .costform input { width: 100%; padding: 11px 12px; font: inherit; font-size: 14px; border: 1.5px solid var(--line); border-radius: 10px; }
+    .costform .wide { grid-column: 1 / -1; }
+    .costrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+    .costrow small { display: block; color: var(--muted); font-size: 12px; }
+    .costrow button { border: 0; background: transparent; color: var(--red); font: inherit; font-size: 13px; cursor: pointer; }
 
     main { max-width: 640px; margin: 0 auto; padding: 16px 16px 60px; }
     .note { text-align: center; color: var(--muted); font-size: 14px; padding: 36px 12px; line-height: 1.5; }
@@ -101,17 +145,11 @@
 
 <header>
   <div class="top">
-    <h1>BODEGS Admin</h1>
+    <button type="button" class="menubtn" id="menuBtn" aria-label="Menu"><i></i><i></i><i></i></button>
+    <h1 id="title">Home</h1>
     <a href="profile.html">Profile</a>
   </div>
-  <div class="tabs" id="tabs" hidden>
-    <button type="button" class="tab on" data-status="pending">Pending <span id="cPending"></span></button>
-    <button type="button" class="tab" data-status="approved">Approved</button>
-    <button type="button" class="tab" data-status="rejected">Rejected</button>
-    <button type="button" class="tab" data-status="sellers">Sellers</button>
-    <button type="button" class="tab" data-status="hub">Hub <span id="cHub"></span></button>
-    <button type="button" class="tab" data-status="reports">Reports <span id="cRep"></span></button>
-  </div>
+  <div id="attn" hidden></div>
   <div id="hubbar" hidden>
     <input type="search" id="hubSearch" placeholder="Search order number, product, seller, phone" autocomplete="off">
     <div class="chips" id="hubChips">
@@ -122,6 +160,20 @@
     </div>
   </div>
 </header>
+<div id="scrim" hidden></div>
+<nav class="drawer" id="tabs" aria-label="Admin menu" hidden>
+  <h3>BODEGS Admin</h3>
+  <button type="button" class="tab on" data-status="home">Home</button>
+  <button type="button" class="tab" data-status="hub">Hub <span class="cnt" id="cHub"></span></button>
+  <button type="button" class="tab" data-status="pending">Approve sellers <span class="cnt" id="cPending"></span></button>
+  <button type="button" class="tab" data-status="reports">Reports <span class="cnt" id="cRep"></span></button>
+  <div class="sep"></div>
+  <button type="button" class="tab" data-status="sellers">Sellers</button>
+  <button type="button" class="tab" data-status="approved">Approved applications</button>
+  <button type="button" class="tab" data-status="rejected">Rejected applications</button>
+  <div class="sep"></div>
+  <button type="button" class="tab" data-status="costs">Costs</button>
+</nav>
 
 <main id="list"><p class="note">Checking access...</p></main>
 <div id="toast" hidden></div>
@@ -130,7 +182,8 @@
 <script src="supabase.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
-  let status = "pending";
+  let status = "home";
+  const TITLES = { home: "Home", hub: "Hub", pending: "Approve sellers", reports: "Reports", sellers: "Sellers", approved: "Approved applications", rejected: "Rejected applications", costs: "Costs" };
   let ownerBoutiques = {};
 
   function toast(text, isError) {
@@ -496,7 +549,7 @@
     if (error) { note("Could not load the hub list: " + error.message, true); return; }
     hubData = data;
     const todo = groupOrders(data).filter((o) => o.group !== "wait").length;
-    $("cHub").textContent = todo ? "(" + todo + ")" : "";
+    $("cHub").textContent = todo ? String(todo) : "";
     renderHub();
   }
   $("hubSearch").addEventListener("input", () => { if (status === "hub") renderHub(); });
@@ -589,16 +642,213 @@
     const { data, error } = await sb.rpc("admin_reports_list");
     if (error) { note("Could not load reports: " + error.message, true); return; }
     const open = data.filter((r) => r.status === "open").length;
-    $("cRep").textContent = open ? "(" + open + ")" : "";
+    $("cRep").textContent = open ? String(open) : "";
     const list = $("list");
     list.textContent = "";
     if (!data.length) { note("No problem reports."); return; }
     data.forEach((r) => list.appendChild(reportCard(r)));
   }
 
+  // ---------- Menu, attention bar, Home and Costs ----------
+  const LIMITS = { db: 500 * 1048576, storage: 1024 * 1048576, accounts: 50000 };
+  function naira(n) {
+    n = Number(n) || 0; const a = Math.abs(n);
+    if (a >= 1e6) return "₦" + (n / 1e6).toFixed(a >= 1e7 ? 0 : 1) + "M";
+    if (a >= 1e4) return "₦" + Math.round(n / 1e3) + "k";
+    return "₦" + Math.round(n).toLocaleString("en-NG");
+  }
+  function nairaFull(n) { return "₦" + Math.round(Number(n) || 0).toLocaleString("en-NG"); }
+  function mb(b) { b = Number(b) || 0; return b >= 1073741824 ? (b / 1073741824).toFixed(2) + " GB" : (b / 1048576).toFixed(1) + " MB"; }
+
+  function openDrawer(open) {
+    $("tabs").classList.toggle("open", open);
+    $("scrim").hidden = !open;
+  }
+  $("menuBtn").addEventListener("click", () => openDrawer(!$("tabs").classList.contains("open")));
+  $("scrim").addEventListener("click", () => openDrawer(false));
+  function goTo(s) {
+    const t = document.querySelector('.tab[data-status="' + s + '"]');
+    if (t) t.click();
+  }
+
+  async function refreshAttn() {
+    const { data, error } = await sb.rpc("admin_dashboard");
+    if (error || !data) return null;
+    lastDash = data;
+    const set = (id, n) => { $(id).textContent = n ? String(n) : ""; };
+    set("cHub", data.need_hub); set("cPending", data.need_apps); set("cRep", Number(data.need_reports) + Number(data.need_refunds));
+    const bar = $("attn");
+    bar.textContent = "";
+    const add = (n, text, target, soft) => {
+      if (!n) return;
+      const b = el("button", soft ? "soft" : "", n + " " + text);
+      b.type = "button"; b.addEventListener("click", () => goTo(target));
+      bar.appendChild(b);
+    };
+    add(Number(data.need_hub), "in the hub", "hub");
+    add(Number(data.need_apps), "to approve", "pending");
+    add(Number(data.need_reports), "problem report(s)", "reports");
+    add(Number(data.need_refunds), "refund(s) to pay", "reports", true);
+    bar.hidden = !bar.children.length;
+    return data;
+  }
+  let lastDash = null;
+
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function sv(tag, attrs, text) {
+    const e = document.createElementNS(SVGNS, tag);
+    Object.keys(attrs || {}).forEach((k) => e.setAttribute(k, attrs[k]));
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function monthName(ym) { const p = ym.split("-"); return MONTHS[Number(p[1]) - 1] + " " + p[0]; }
+
+  // series: [{key,color,label}], stacked bars, one per month
+  function chart(months, series, onPick) {
+    const W = 340, H = 190, L = 40, B = 24, T = 10, R = 6;
+    const totals = months.map((m) => series.reduce((t, x) => t + Number(m[x.key] || 0), 0));
+    let max = Math.max.apply(null, totals.concat([1000]));
+    const mag = Math.pow(10, Math.floor(Math.log10(max)));
+    max = Math.ceil(max / mag * 2) / 2 * mag; // round up to a neat number
+    const svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img" });
+    for (let i = 0; i <= 4; i++) {
+      const y = T + (H - T - B) * (1 - i / 4);
+      svg.appendChild(sv("line", { x1: L, x2: W - R, y1: y, y2: y, stroke: "#e5e7eb", "stroke-width": 1 }));
+      svg.appendChild(sv("text", { x: L - 5, y: y + 4, "text-anchor": "end", "font-size": 10, fill: "#6b7280" }, naira(max * i / 4)));
+    }
+    const bw = (W - L - R) / months.length;
+    months.forEach((m, i) => {
+      let y = H - B;
+      series.forEach((x) => {
+        const h = (H - T - B) * (Number(m[x.key] || 0) / max);
+        if (h > 0) { svg.appendChild(sv("rect", { x: L + i * bw + bw * 0.18, y: y - h, width: bw * 0.64, height: h, rx: 2, fill: x.color })); y -= h; }
+      });
+      const hit = sv("rect", { x: L + i * bw, y: T, width: bw, height: H - T - B, fill: "transparent", style: "cursor:pointer" });
+      hit.addEventListener("click", () => onPick(i));
+      svg.appendChild(hit);
+      svg.appendChild(sv("text", { x: L + i * bw + bw / 2, y: H - 8, "text-anchor": "middle", "font-size": 10, fill: "#6b7280" }, MONTHS[Number(m.month.split("-")[1]) - 1][0]));
+    });
+    return svg;
+  }
+
+  function tile(values) {
+    let i = 0;
+    const b = el("button", "tile"); b.type = "button";
+    const n = el("div", "n"), l = el("div", "l"), h = el("div", "h");
+    b.appendChild(n); b.appendChild(l); b.appendChild(h);
+    const draw = () => { n.textContent = values[i].n; l.textContent = values[i].l; h.textContent = values.length > 1 ? "Tap to switch" : ""; };
+    b.addEventListener("click", () => { i = (i + 1) % values.length; draw(); });
+    draw();
+    return b;
+  }
+
+  function meter(label, used, limit, text) {
+    const pct = Math.min(100, used / limit * 100);
+    const d = el("div", "meter");
+    const row = el("div", "row"); row.appendChild(el("span", "", label)); row.appendChild(el("span", "", text + " · " + pct.toFixed(pct < 10 ? 1 : 0) + "%"));
+    const bar = el("div", "bar"); const f = el("i", pct > 90 ? "bad" : pct > 70 ? "warn" : ""); f.style.width = Math.max(pct, 1) + "%"; bar.appendChild(f);
+    d.appendChild(row); d.appendChild(bar);
+    return d;
+  }
+
+  async function loadHome() {
+    const d = await refreshAttn();
+    if (!d) { note("Could not load the numbers. Please try again.", true); return; }
+    const list = $("list"); list.textContent = "";
+    const home = el("div", "home"); list.appendChild(home);
+
+    const tiles = el("div", "tiles"); home.appendChild(tiles);
+    tiles.appendChild(tile([{ n: d.accounts_7d, l: "New accounts · 7 days" }, { n: d.accounts_30d, l: "New accounts · 30 days" }, { n: d.accounts_total, l: "All accounts" }]));
+    tiles.appendChild(tile([{ n: d.buyers_total, l: "Total buyers" }]));
+    tiles.appendChild(tile([{ n: d.sellers_7d, l: "New sellers · 7 days" }, { n: d.sellers_30d, l: "New sellers · 30 days" }]));
+    tiles.appendChild(tile([{ n: d.sellers_total, l: "Total sellers" }]));
+    tiles.appendChild(tile([{ n: nairaFull(d.sales_month), l: "Sales this month · " + d.orders_month + " orders" }, { n: nairaFull(d.sales_all), l: "Sales all time · " + d.orders_paid + " orders" }]));
+    tiles.appendChild(tile([{ n: d.orders_paid, l: "Paid orders (all time)" }, { n: d.products, l: "Products listed" }]));
+
+    // Chart card: swipe between revenue and expenses
+    const months = d.months || [];
+    const card = el("div", "card"); home.appendChild(card);
+    const seg = el("div", "seg");
+    const bRev = el("button", "on", "Revenue"), bExp = el("button", "", "Expenses");
+    bRev.type = bExp.type = "button"; seg.appendChild(bRev); seg.appendChild(bExp); card.appendChild(seg);
+    const slides = el("div", "slides"); card.appendChild(slides);
+    const s1 = el("div", "slide"), s2 = el("div", "slide"); slides.appendChild(s1); slides.appendChild(s2);
+
+    const cap1 = el("p", "cap"), cap2 = el("p", "cap");
+    const sum = (k) => months.reduce((t, m) => t + Number(m[k] || 0), 0);
+    const showRev = (i) => { const m = months[i]; cap1.textContent = ""; const b = el("b", "", monthName(m.month)); cap1.appendChild(b); cap1.appendChild(document.createTextNode(": revenue " + nairaFull(m.revenue) + " · sales " + nairaFull(m.sales))); };
+    const showExp = (i) => {
+      const m = months[i]; const out = Number(m.payouts) + Number(m.refunds) + Number(m.costs);
+      cap2.textContent = ""; cap2.appendChild(el("b", "", monthName(m.month)));
+      cap2.appendChild(document.createTextNode(": payouts " + nairaFull(m.payouts) + " · refunds " + nairaFull(m.refunds) + " · my costs " + nairaFull(m.costs) + " · profit " + nairaFull(Number(m.revenue) - out)));
+    };
+    s1.appendChild(el("h2", "", "Monthly revenue"));
+    s1.appendChild(el("p", "cap", "BODEGS's " + d.commission_percent + "% on delivered items plus cancellation fees. Tap a bar. Swipe for expenses."));
+    s1.appendChild(chart(months, [{ key: "revenue", color: "#4f46e5" }], showRev));
+    s1.appendChild(cap1);
+    s2.appendChild(el("h2", "", "Monthly expenses"));
+    const lg = el("div", "legend");
+    [["#111827", "Seller payouts"], ["#ef4444", "Refunds"], ["#f59e0b", "My costs"]].forEach((x) => { const sp = el("span"); const i = el("i"); i.style.background = x[0]; sp.appendChild(i); sp.appendChild(document.createTextNode(x[1])); lg.appendChild(sp); });
+    s2.appendChild(lg);
+    s2.appendChild(chart(months, [{ key: "payouts", color: "#111827" }, { key: "refunds", color: "#ef4444" }, { key: "costs", color: "#f59e0b" }], showExp));
+    s2.appendChild(cap2);
+    if (months.length) { showRev(months.length - 1); showExp(months.length - 1); }
+    const go = (n) => { slides.scrollTo({ left: n * slides.clientWidth, behavior: "smooth" }); };
+    bRev.addEventListener("click", () => go(0)); bExp.addEventListener("click", () => go(1));
+    slides.addEventListener("scroll", () => { const n = Math.round(slides.scrollLeft / slides.clientWidth); bRev.classList.toggle("on", n === 0); bExp.classList.toggle("on", n === 1); });
+    const tot = el("p", "cap"); tot.textContent = "Last 12 months: revenue " + nairaFull(sum("revenue")) + " · expenses " + nairaFull(sum("payouts") + sum("refunds") + sum("costs")) + ". Add your own costs under Costs.";
+    card.appendChild(tot);
+
+    // Capacity
+    const cap = el("div", "card"); home.appendChild(cap);
+    cap.appendChild(el("h2", "", "Is it time to upgrade?"));
+    cap.appendChild(el("p", "cap", "Free plan limits. When a bar passes 70%, plan to clean up or upgrade."));
+    cap.appendChild(meter("Database", Number(d.db_bytes), LIMITS.db, mb(d.db_bytes) + " of " + mb(LIMITS.db)));
+    cap.appendChild(meter("File storage (photos)", Number(d.storage_bytes), LIMITS.storage, mb(d.storage_bytes) + " of " + mb(LIMITS.storage)));
+    cap.appendChild(meter("Accounts", Number(d.accounts_total), LIMITS.accounts, d.accounts_total + " of " + LIMITS.accounts.toLocaleString("en-NG")));
+  }
+
+  async function loadCosts() {
+    const { data, error } = await sb.rpc("admin_costs_list");
+    if (error) { note("Could not load costs: " + error.message, true); return; }
+    const list = $("list"); list.textContent = "";
+    const home = el("div", "home"); list.appendChild(home);
+    const card = el("div", "card"); home.appendChild(card);
+    card.appendChild(el("h2", "", "Add a cost"));
+    card.appendChild(el("p", "cap", "Hosting, domain, Paystack fees, anything you spend to run BODEGS. It shows in the expenses chart."));
+    const f = el("div", "costform"); card.appendChild(f);
+    const dt = el("input"); dt.type = "date"; dt.value = new Date().toISOString().slice(0, 10);
+    const am = el("input"); am.type = "number"; am.inputMode = "decimal"; am.min = "0"; am.placeholder = "Amount (₦)";
+    const lb = el("input", "wide"); lb.type = "text"; lb.maxLength = 80; lb.placeholder = "What was it for? e.g. Domain renewal";
+    const add = el("button", "btn go wide", "Add cost"); add.type = "button";
+    f.appendChild(dt); f.appendChild(am); f.appendChild(lb); f.appendChild(add);
+    add.addEventListener("click", async () => {
+      add.disabled = true;
+      const { data: r, error: e } = await sb.rpc("admin_add_cost", { p_date: dt.value || null, p_label: lb.value, p_amount: Number(am.value) });
+      if (e || r !== "ok") { toast(r === "label_needed" ? "Write what it was for." : r === "bad_amount" ? "Enter a valid amount." : "Could not save.", true); add.disabled = false; return; }
+      toast("Cost added."); loadCosts();
+    });
+    const hist = el("div", "card"); home.appendChild(hist);
+    hist.appendChild(el("h2", "", "Recent costs"));
+    if (!data.length) hist.appendChild(el("p", "cap", "Nothing yet."));
+    data.forEach((c) => {
+      const row = el("div", "costrow");
+      const left = el("div"); left.appendChild(document.createTextNode(c.label)); left.appendChild(el("small", "", new Date(c.cost_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })));
+      const right = el("div"); right.appendChild(el("b", "", nairaFull(c.amount)));
+      const del = el("button", "", "Delete"); del.type = "button";
+      del.addEventListener("click", async () => { if (!confirm("Delete this cost?")) return; await sb.rpc("admin_delete_cost", { p_id: c.id }); loadCosts(); });
+      row.appendChild(left); row.appendChild(right); row.appendChild(del); hist.appendChild(row);
+    });
+  }
+
   async function load() {
     note("Loading...");
+    $("title").textContent = TITLES[status] || "Admin";
     $("hubbar").hidden = status !== "hub";
+    if (status !== "home") refreshAttn();
+    if (status === "home") { return loadHome(); }
+    if (status === "costs") { return loadCosts(); }
     if (status === "hub") { return loadHub(); }
     if (status === "reports") { return loadReports(); }
     if (status === "sellers") { return loadSellers(); }
@@ -618,7 +868,7 @@
     }
 
     const pending = data.filter((a) => a.status === "pending").length;
-    $("cPending").textContent = pending ? "(" + pending + ")" : "";
+    $("cPending").textContent = pending ? String(pending) : "";
 
     const shown = data.filter((a) => a.status === status);
     const list = $("list");
@@ -631,6 +881,8 @@
     tab.addEventListener("click", () => {
       status = tab.dataset.status;
       document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t === tab));
+      openDrawer(false);
+      window.scrollTo(0, 0);
       load();
     });
   });
