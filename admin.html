@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Admin — BODEGS</title>
+  <style>
+    :root { --ink:#111; --muted:#6b7280; --line:#e5e7eb; --bg:#f5f5f7; --green:#166534; --red:#b91c1c; --amber:#92400e; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--ink); }
+
+    header { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid var(--line); padding: 12px 16px; }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .top h1 { font-size: 17px; margin: 0; }
+    .top a { color: var(--muted); font-size: 14px; text-decoration: none; }
+    .top { justify-content: flex-start; }
+    .top h1 { flex: 1; }
+    .menubtn { flex: none; width: 40px; height: 40px; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; cursor: pointer; padding: 0; }
+    .menubtn i { display: block; width: 18px; height: 2px; background: var(--ink); border-radius: 2px; }
+    #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; }
+    .drawer { position: fixed; top: 0; bottom: 0; left: 0; width: 80%; max-width: 300px; background: #fff; z-index: 21; padding: 18px 12px; transform: translateX(-105%); transition: transform .22s ease; overflow-y: auto; box-shadow: 2px 0 14px rgba(0,0,0,.15); }
+    .drawer.open { transform: none; }
+    .drawer h3 { margin: 4px 8px 14px; font-size: 17px; }
+    .tab { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 13px 12px; margin: 2px 0; font-size: 15px; text-align: left; font-family: inherit; border: 0; background: transparent; border-radius: 10px; cursor: pointer; color: var(--ink); }
+    .tab.on { background: var(--ink); color: #fff; }
+    .tab .cnt { font-size: 12px; font-weight: 700; background: #ef4444; color: #fff; border-radius: 99px; padding: 2px 8px; }
+    .tab .cnt:empty { display: none; }
+    .tab hr { display: none; }
+    .drawer .sep { height: 1px; background: var(--line); margin: 8px 10px; }
+    #attn { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    #attn button { border: 0; border-radius: 99px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 700; background: #fee2e2; color: #991b1b; cursor: pointer; }
+    #attn button.soft { background: #e0e7ff; color: #3730a3; }
+    .home { display: flex; flex-direction: column; gap: 12px; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tile { background: #fff; border: 0; border-radius: 14px; padding: 12px; text-align: left; font-family: inherit; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .tile .n { font-size: 24px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+    .tile .l { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .tile .h { font-size: 11px; color: #6366f1; margin-top: 4px; }
+    .card { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .card h2 { margin: 0 0 4px; font-size: 15px; }
+    .seg { display: flex; gap: 6px; margin-bottom: 8px; }
+    .seg button { flex: 1; padding: 8px; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; font: inherit; font-size: 13px; cursor: pointer; }
+    .seg button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+    .slides::-webkit-scrollbar { display: none; }
+    .slide { flex: 0 0 100%; scroll-snap-align: start; }
+    .slide svg { width: 100%; height: auto; display: block; }
+    .cap { font-size: 12.5px; color: var(--muted); line-height: 1.5; min-height: 38px; }
+    .cap b { color: var(--ink); }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin: 4px 0; }
+    .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; }
+    .meter { margin: 10px 0; }
+    .meter .row { display: flex; justify-content: space-between; font-size: 13px; }
+    .meter .bar { height: 8px; background: #eceef2; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+    .meter .bar i { display: block; height: 100%; background: #22c55e; border-radius: 99px; }
+    .meter .bar i.warn { background: #f59e0b; } .meter .bar i.bad { background: #ef4444; }
+    .costform { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .costform input { width: 100%; padding: 11px 12px; font: inherit; font-size: 14px; border: 1.5px solid var(--line); border-radius: 10px; }
+    .costform .wide { grid-column: 1 / -1; }
+    .costrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+    .costrow small { display: block; color: var(--muted); font-size: 12px; }
+    .costrow button { border: 0; background: transparent; color: var(--red); font: inherit; font-size: 13px; cursor: pointer; }
+
+    main { max-width: 640px; margin: 0 auto; padding: 16px 16px 60px; }
+    .note { text-align: center; color: var(--muted); font-size: 14px; padding: 36px 12px; line-height: 1.5; }
+    .note.err { color: var(--red); }
+
+    .app { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+    .app-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .app-head h2 { margin: 0; font-size: 18px; overflow-wrap: anywhere; }
+    .badge { flex: none; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; background: #fef3c7; color: var(--amber); }
+    .badge.approved { background: #dcfce7; color: var(--green); }
+    .badge.rejected { background: #fee2e2; color: var(--red); }
+    .badge.active { background: #dcfce7; color: var(--green); }
+    .badge.suspended { background: #fef3c7; color: var(--amber); }
+    .badge.banned { background: #fee2e2; color: var(--red); }
+    .btn.suspend { background: #fff; color: var(--amber); border: 1.5px solid #fde68a; }
+    .btn.ban { background: var(--red); color: #fff; }
+    .sub { color: var(--muted); font-size: 13px; margin: 4px 0 12px; }
+    dl { margin: 0; display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; font-size: 14px; }
+    dt { color: var(--muted); }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    dd a { color: #1d4ed8; }
+    .about { margin: 12px 0 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; background: #f9fafb; padding: 10px 12px; border-radius: 10px; }
+
+    .docs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .docbtn { padding: 9px 12px; font-size: 13px; font-family: inherit; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; cursor: pointer; color: var(--ink); }
+    .docview { margin-top: 10px; }
+    .docview img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+    .docview a { color: #1d4ed8; font-size: 14px; }
+    .docview p { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
+    .btn { flex: 1; padding: 13px; font-size: 15px; font-weight: 600; font-family: inherit; border: 0; border-radius: 10px; cursor: pointer; }
+    .btn.approve { background: var(--green); color: #fff; }
+    .btn.reject { background: #fff; color: var(--red); border: 1.5px solid #fecaca; }
+    .btn:disabled { opacity: .55; }
+    .warn { margin-top: 12px; font-size: 13px; color: var(--amber); background: #fffbeb; border: 1px solid #fde68a; padding: 10px 12px; border-radius: 10px; overflow-wrap: anywhere; }
+    .reason { margin-top: 12px; font-size: 13px; color: var(--red); background: #fef2f2; padding: 10px 12px; border-radius: 10px; overflow-wrap: anywhere; }
+
+    .stage { display: inline-block; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; background: #e0e7ff; color: #3730a3; }
+    .stage.bad { background: #fee2e2; color: var(--red); }
+    .stage.ok { background: #dcfce7; color: var(--green); }
+    .hubnote { width: 100%; margin-top: 12px; padding: 11px 12px; font-size: 14px; font-family: inherit; border: 1.5px solid var(--line); border-radius: 10px; }
+    .btn.pass { background: var(--green); color: #fff; }
+    .btn.go { background: var(--ink); color: #fff; }
+
+    .app { padding: 12px 14px; margin-bottom: 10px; border-radius: 14px; }
+    .app-head h2 { font-size: 16px; }
+    .app-head { cursor: pointer; }
+    .badge, .stage { font-size: 11.5px; padding: 4px 9px; }
+    .sub { margin: 2px 0 0; font-size: 12.5px; }
+    .app .detail { margin-top: 10px; }
+    .app dl { font-size: 13px; gap: 3px 8px; grid-template-columns: 84px 1fr; }
+    .app .actions { margin-top: 12px; }
+    .app .btn { padding: 10px; font-size: 14px; }
+    .chev { flex: none; color: var(--muted); font-size: 14px; margin-left: 6px; }
+    .hubhead { align-items: center; }
+    .hubtitle { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .hubitems { margin-top: 8px; }
+    .hubitem { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+    .hubimg { flex: none; width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: #eee; }
+    .hubbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+    .hubbody b { font-size: 14px; overflow-wrap: anywhere; }
+    .sub2 { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+    .notel { margin: 0 0 4px 54px; }
+    .stage.mini { font-size: 11px; padding: 2px 8px; }
+    .stage.wait { background: #fef3c7; color: var(--amber); }
+    .btn.small { flex: none; padding: 8px 12px; font-size: 13px; }
+    .btn.small.send { width: 100%; margin-top: 8px; padding: 11px; font-size: 14px; }
+    .linkbtn { background: none; border: 0; padding: 0 0 6px 54px; font: inherit; font-size: 12px; color: #1d4ed8; cursor: pointer; display: block; }
+    .hubnote { margin: 0 0 6px 54px; width: calc(100% - 54px); padding: 8px 10px; font-size: 13px; }
+    #hubbar { margin-top: 10px; }
+    #hubSearch { width: 100%; padding: 11px 12px; font-size: 15px; font-family: inherit; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+    .chips { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 2px; }
+    .chip { flex: none; padding: 7px 12px; font-size: 13px; font-family: inherit; border: 1.5px solid var(--line); background: #fff; border-radius: 99px; cursor: pointer; }
+    .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+    #toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 440px; margin: 0 auto; padding: 13px 15px; border-radius: 12px; font-size: 14px; background: #111; color: #fff; z-index: 9; }
+    #toast.err { background: var(--red); }
+  </style>
+<script>
+  // Shows any page error on screen, so a stuck page tells us why.
+  (function () {
+    function show(msg) {
+      var l = document.getElementById("list");
+      if (l) l.innerHTML = '<p style="padding:24px;color:#b91c1c;font:14px/1.5 system-ui;overflow-wrap:anywhere">Page error: ' + String(msg).replace(/</g, "&lt;") + '</p>';
+    }
+    window.addEventListener("error", function (e) { show((e.message || e.error) + " (line " + e.lineno + ")"); });
+    window.addEventListener("unhandledrejection", function (e) { show((e.reason && e.reason.message) || e.reason); });
+    setTimeout(function () {
+      var l = document.getElementById("list");
+      if (l && /Checking access/.test(l.textContent)) show("Still checking access after 10 seconds. The connection to the database is slow or blocked.");
+    }, 10000);
+  })();
+</script>
+</head>
+<body style="overflow-x:hidden">
+
+<header>
+  <div class="top">
+    <button type="button" class="menubtn" id="menuBtn" aria-label="Menu"><i></i><i></i><i></i></button>
+    <h1 id="title">Home</h1>
+    <a href="profile.html">Profile</a>
+  </div>
+  <div id="attn" hidden></div>
+  <div class="seg" id="appSeg" hidden style="margin:10px 0 0">
+    <button type="button" class="on" data-s="pending">Pending</button>
+    <button type="button" data-s="approved">Approved</button>
+    <button type="button" data-s="rejected">Rejected</button>
+  </div>
+  <div id="hubbar" hidden>
+    <input type="search" id="hubSearch" placeholder="Search order number, product, seller, phone" autocomplete="off">
+    <div class="chips" id="hubChips">
+      <button type="button" class="chip on" data-f="all">All</button>
+      <button type="button" class="chip" data-f="receive">Waiting for items</button>
+      <button type="button" class="chip" data-f="send">Ready to send</button>
+      <button type="button" class="chip" data-f="wait">With buyer</button>
+    </div>
+  </div>
+</header>
+<div id="scrim" hidden></div>
+<nav class="drawer" id="tabs" aria-label="Admin menu" hidden>
+  <h3>BODEGS Admin</h3>
+  <button type="button" class="tab on" data-status="home">Home</button>
+  <button type="button" class="tab" data-status="hub">Hub <span class="cnt" id="cHub"></span></button>
+  <button type="button" class="tab" data-status="pending">Approve sellers <span class="cnt" id="cPending"></span></button>
+  <button type="button" class="tab" data-status="reports">Reports <span class="cnt" id="cRep"></span></button>
+  <div class="sep"></div>
+  <button type="button" class="tab" data-status="sellers">Sellers</button>
+  <div class="sep"></div>
+  <button type="button" class="tab" data-status="costs">Costs</button>
+</nav>
+
+<main id="list"><p class="note">Checking access...</p></main>
+<div id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let status = "home";
+  const TITLES = { home: "Home", hub: "Hub", pending: "Approve sellers", reports: "Reports", sellers: "Sellers", approved: "Approve sellers", rejected: "Approve sellers", costs: "Costs" };
+  let ownerBoutiques = {};
+
+  function toast(text, isError) {
+    const t = $("toast");
+    t.textContent = text;
+    t.className = isError ? "err" : "";
+    t.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { t.hidden = true; }, 4000);
+  }
+
+  function note(text, isError) {
+    const list = $("list");
+    list.textContent = "";
+    const p = document.createElement("p");
+    p.className = "note" + (isError ? " err" : "");
+    p.textContent = text;
+    list.appendChild(p);
+  }
+
+  function el(tag, className, text) {
+    const e = document.createElement(tag);
+    if (className) e.className = className;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function row(dl, label, value, href) {
+    if (!value) return;
+    dl.appendChild(el("dt", "", label));
+    const dd = el("dd");
+    if (href) {
+      const a = el("a", "", value);
+      a.href = href;
+      dd.appendChild(a);
+    } else {
+      dd.textContent = value;
+    }
+    dl.appendChild(dd);
+  }
+
+  function formatDate(value) {
+    const d = new Date(value);
+    return isNaN(d) ? "" : d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  // Show a private document. Images appear on the page. PDFs get a link.
+  async function showDoc(path, label, box) {
+    box.textContent = "";
+    box.appendChild(el("p", "", "Loading " + label + "..."));
+    const { data, error } = await sb.storage.from("seller-docs").createSignedUrl(path, 300);
+    box.textContent = "";
+    if (error || !data) {
+      box.appendChild(el("p", "", "Could not open this document."));
+      return;
+    }
+    box.appendChild(el("p", "", label + " (link works for 5 minutes)"));
+    if (/\.pdf$/i.test(path)) {
+      const a = el("a", "", "Open PDF");
+      a.href = data.signedUrl;
+      a.target = "_blank";
+      a.rel = "noopener";
+      box.appendChild(a);
+    } else {
+      const img = document.createElement("img");
+      img.src = data.signedUrl;
+      img.alt = label;
+      box.appendChild(img);
+    }
+  }
+
+  function card(app) {
+    const wrap = el("article", "app");
+
+    const head = el("div", "app-head");
+    head.appendChild(el("h2", "", app.boutique_name));
+    head.appendChild(el("span", "badge " + app.status, app.status.charAt(0).toUpperCase() + app.status.slice(1)));
+    wrap.appendChild(head);
+    wrap.appendChild(el("p", "sub", "Applied " + formatDate(app.created_at)));
+
+    const dl = el("dl");
+    row(dl, "Name", app.full_name);
+    row(dl, "Phone", app.phone, "tel:" + app.phone.replace(/[^\d+]/g, ""));
+    row(dl, "Email", app.email, "mailto:" + app.email);
+    row(dl, "City", app.city);
+    row(dl, "Category", app.category);
+    row(dl, "CAC number", app.cac_number);
+    row(dl, "Social", app.social);
+    wrap.appendChild(dl);
+    wrap.appendChild(el("p", "about", app.about));
+
+    const docs = el("div", "docs");
+    const view = el("div", "docview");
+    [["ID", app.id_doc_path, "Government ID"],
+     ["CAC certificate", app.cac_doc_path, "CAC certificate"],
+     ["Address proof", app.address_doc_path, "Address proof"]].forEach(([text, path, label]) => {
+      if (!path) return;
+      const b = el("button", "docbtn", "View " + text);
+      b.type = "button";
+      b.addEventListener("click", () => showDoc(path, label, view));
+      docs.appendChild(b);
+    });
+    wrap.appendChild(docs);
+    wrap.appendChild(view);
+
+    if (app.status === "rejected" && app.rejection_reason) {
+      wrap.appendChild(el("p", "reason", "Reason: " + app.rejection_reason));
+    }
+
+    if (app.status === "pending") {
+      const existing = ownerBoutiques[app.user_id];
+      if (existing) {
+        wrap.appendChild(el("p", "warn",
+          "Heads up: this account already owns a boutique (" + existing +
+          "). Approving this will not create another one."));
+      }
+      const actions = el("div", "actions");
+      const reject = el("button", "btn reject", "Reject");
+      const approve = el("button", "btn approve", "Approve");
+      reject.type = approve.type = "button";
+
+      approve.addEventListener("click", async () => {
+        if (!confirm("Approve " + app.boutique_name + "? They will become a verified seller.")) return;
+        approve.disabled = reject.disabled = true;
+        const { error } = await sb.rpc("approve_application", { app_id: app.id });
+        if (error) { toast("Could not approve: " + error.message, true); approve.disabled = reject.disabled = false; return; }
+        toast(app.boutique_name + " approved.");
+        load();
+      });
+
+      reject.addEventListener("click", async () => {
+        const reason = (prompt("Why are you rejecting " + app.boutique_name + "? The reason is saved with the application.") || "").trim();
+        if (!reason) { toast("A reason is required to reject.", true); return; }
+        approve.disabled = reject.disabled = true;
+        const { error } = await sb.rpc("reject_application", { app_id: app.id, reason: reason });
+        if (error) { toast("Could not reject: " + error.message, true); approve.disabled = reject.disabled = false; return; }
+        toast(app.boutique_name + " rejected.");
+        load();
+      });
+
+      actions.appendChild(reject);
+      actions.appendChild(approve);
+      wrap.appendChild(actions);
+    }
+    return wrap;
+  }
+
+  // ---- Sellers tab: suspend, ban, reinstate ----
+  const STATUS_WORD = { active: "Active", suspended: "Suspended", banned: "Banned" };
+
+  async function changeSeller(s, newStatus, reason, button, siblings) {
+    siblings.forEach((b) => { b.disabled = true; });
+    const { error } = await sb.rpc("set_seller_status", { p_seller: s.id, p_status: newStatus, p_reason: reason });
+    if (error) {
+      toast("Could not update: " + error.message, true);
+      siblings.forEach((b) => { b.disabled = false; });
+      return;
+    }
+    toast(s.boutique_name + " is now " + newStatus + ".");
+    load();
+  }
+
+  function sellerCard(s, contact, last) {
+    const st = s.status || "active";
+    const wrap = el("article", "app");
+    const head = el("div", "app-head");
+    head.appendChild(el("h2", "", s.boutique_name));
+    head.appendChild(el("span", "badge " + st, STATUS_WORD[st] || st));
+    wrap.appendChild(head);
+    wrap.appendChild(el("p", "sub", "Seller since " + formatDate(s.created_at)));
+
+    const dl = el("dl");
+    if (contact) {
+      row(dl, "Name", contact.full_name);
+      row(dl, "Phone", contact.phone, contact.phone ? "tel:" + contact.phone.replace(/[^\d+]/g, "") : "");
+      row(dl, "Email", contact.email, contact.email ? "mailto:" + contact.email : "");
+    }
+    row(dl, "City", s.city);
+    row(dl, "Category", s.category);
+    wrap.appendChild(dl);
+
+    if (st !== "active" && last) {
+      wrap.appendChild(el("p", "reason", "Reason (" + formatDate(last.created_at) + "): " + last.reason));
+    }
+
+    const actions = el("div", "actions");
+    const buttons = [];
+    function add(cls, label, fn) {
+      const b = el("button", "btn " + cls, label);
+      b.type = "button";
+      b.addEventListener("click", () => fn(b));
+      buttons.push(b);
+      actions.appendChild(b);
+    }
+    function ask(verb, newStatus, needsConfirm) {
+      return (b) => {
+        const reason = (prompt("Why are you " + verb + " " + s.boutique_name + "? The reason is saved.") || "").trim();
+        if (!reason) { toast("A reason is required.", true); return; }
+        if (needsConfirm && !confirm("Ban " + s.boutique_name + "? Their products will disappear from the shop and they cannot sell.")) return;
+        changeSeller(s, newStatus, reason, b, buttons);
+      };
+    }
+    if (st === "active") {
+      add("suspend", "Suspend", ask("suspending", "suspended", false));
+      add("ban", "Ban", ask("banning", "banned", true));
+    } else if (st === "suspended") {
+      add("approve", "Reinstate", (b) => {
+        if (!confirm("Reinstate " + s.boutique_name + "?")) return;
+        changeSeller(s, "active", "", b, buttons);
+      });
+      add("ban", "Ban", ask("banning", "banned", true));
+    } else {
+      add("approve", "Reinstate", (b) => {
+        if (!confirm("Reinstate " + s.boutique_name + "? Their products will show in the shop again.")) return;
+        changeSeller(s, "active", "", b, buttons);
+      });
+    }
+    wrap.appendChild(actions);
+    return wrap;
+  }
+
+  async function loadSellers() {
+    const [sr, ar, mr] = await Promise.all([
+      sb.from("sellers").select("id, owner_id, boutique_name, city, category, status, created_at").order("created_at", { ascending: false }),
+      sb.from("seller_applications").select("user_id, full_name, phone, email, status"),
+      sb.from("seller_moderation").select("seller_id, action, reason, created_at").order("created_at", { ascending: false })
+    ]);
+    if (sr.error) { note("Could not load sellers. Please try again.", true); return; }
+    const contacts = {};
+    (ar.data || []).forEach((a) => { if (a.status === "approved") contacts[a.user_id] = a; });
+    const lastNote = {};
+    (mr.data || []).forEach((m) => { if (!lastNote[m.seller_id]) lastNote[m.seller_id] = m; });
+    const list = $("list");
+    list.textContent = "";
+    if (!sr.data.length) { note("No sellers yet."); return; }
+    sr.data.forEach((s) => list.appendChild(sellerCard(s, contacts[s.owner_id], lastNote[s.id])));
+  }
+
+  // ---------- Hub: one card per ORDER, listing every item from every seller ----------
+  let hubData = [], hubFilter = "all";
+
+  function itemState(r) {
+    if (r.delivered_at) return ["Delivered", "ok"];
+    if (r.dispatched_at) return ["Sent to buyer", "ok"];
+    if (r.hub_result) return ["At hub, checked", "ok"];
+    if (r.hub_received_at) return ["At hub", ""];
+    if (r.shipped_at) return ["On its way to hub", "wait"];
+    return ["Seller has not sent it", "bad"];
+  }
+
+  function groupOrders(rows) {
+    const map = new Map();
+    rows.forEach((r) => {
+      if (!map.has(r.order_id)) map.set(r.order_id, { id: r.order_id, items: [], first: r });
+      map.get(r.order_id).items.push(r);
+    });
+    return Array.from(map.values()).map((o) => {
+      const open = o.items.filter((i) => !i.delivered_at);
+      o.total = o.items.length;
+      o.atHub = o.items.filter((i) => i.hub_result && !i.dispatched_at && !i.delivered_at).length;
+      o.toReceive = o.items.filter((i) => i.shipped_at && !i.hub_received_at && !i.delivered_at).length;
+      o.notSent = o.items.filter((i) => !i.shipped_at).length;
+      o.sent = o.items.filter((i) => i.dispatched_at || i.delivered_at).length;
+      o.group = o.atHub ? "send" : o.toReceive ? "receive" : open.length && open.every((i) => i.dispatched_at) ? "wait" : "receive";
+      return o;
+    });
+  }
+
+  function hubOrderCard(o) {
+    const f = o.first;
+    const wrap = el("section", "app hubcard");
+    const head = el("div", "app-head hubhead");
+    const t = el("div", "hubtitle");
+    t.appendChild(el("h2", "", "#" + String(o.id).slice(0, 8).toUpperCase()));
+    t.appendChild(el("span", "sub2", [f.buyer_name, f.buyer_phone, f.delivery_address].filter(Boolean).join(" · ") || "No delivery details"));
+    head.appendChild(t);
+    head.appendChild(el("span", "stage " + (o.sent === o.total ? "ok" : ""), o.sent + "/" + o.total + " sent"));
+    wrap.appendChild(head);
+
+    const itemsBox = el("div", "hubitems");
+    head.addEventListener("click", () => { itemsBox.hidden = !itemsBox.hidden; });
+    wrap.appendChild(itemsBox);
+
+    async function call(fn, args, button) {
+      if (button) button.disabled = true;
+      const { data, error } = await sb.rpc(fn, args);
+      if (error) { toast("Could not update: " + error.message, true); if (button) button.disabled = false; return false; }
+      return data;
+    }
+
+    o.items.forEach((r) => {
+      const row = el("div", "hubitem");
+      const img = el("img", "hubimg"); img.alt = ""; img.loading = "lazy";
+      if (r.image) img.src = r.image;
+      row.appendChild(img);
+      const body = el("div", "hubbody");
+      body.appendChild(el("b", "", r.product_name + (r.qty > 1 ? " × " + r.qty : "")));
+      body.appendChild(el("span", "sub2", [r.store || "?", r.size, r.color].filter(Boolean).join(" · ")));
+      const st = itemState(r);
+      body.appendChild(el("span", "stage mini " + st[1], st[0]));
+      row.appendChild(body);
+      const canReceive = r.shipped_at && !r.hub_received_at && !r.delivered_at;
+      let noteInput = null;
+      if (canReceive) {
+        const b = el("button", "btn go small", "Received");
+        b.type = "button";
+        b.addEventListener("click", async () => {
+          const r1 = await call("admin_hub_set", { p_item_id: r.item_id, p_stage: "received", p_note: null }, b);
+          if (r1 !== "ok" && r1 !== "already_done") { if (r1 !== false) { toast("Could not update: " + r1, true); b.disabled = false; } return; }
+          const r2 = await call("admin_hub_set", { p_item_id: r.item_id, p_stage: "checked", p_note: noteInput ? noteInput.value : "" }, b);
+          if (r2 !== "ok" && r2 !== "already_done") { if (r2 !== false) { toast("Could not update: " + r2, true); b.disabled = false; } return; }
+          toast("Item received.");
+          loadHub();
+        });
+        row.appendChild(b);
+      }
+      itemsBox.appendChild(row);
+      if (r.hub_note) itemsBox.appendChild(el("p", "sub2 notel", "Note: " + r.hub_note));
+      if (canReceive) {
+        const nb = el("button", "linkbtn", "+ add a note");
+        nb.type = "button";
+        noteInput = el("input", "hubnote"); noteInput.type = "text"; noteInput.maxLength = 300; noteInput.hidden = true;
+        noteInput.placeholder = "e.g. box dented";
+        nb.addEventListener("click", () => { noteInput.hidden = !noteInput.hidden; if (!noteInput.hidden) noteInput.focus(); });
+        itemsBox.appendChild(nb); itemsBox.appendChild(noteInput);
+      }
+    });
+
+    if (o.atHub) {
+      const complete = o.toReceive === 0 && o.notSent === 0;
+      const b = el("button", "btn small send " + (complete ? "pass" : "go"), complete ? "Send whole order to buyer" : "Send " + o.atHub + " of " + o.total + " now");
+      b.type = "button";
+      b.addEventListener("click", async () => {
+        if (!complete && !confirm("Not every item is here yet. Send only the " + o.atHub + " that are at the hub?")) return;
+        const n = await call("admin_hub_dispatch_order", { p_order_id: o.id }, b);
+        if (n === false) return;
+        toast(n + " item(s) marked as sent to buyer.");
+        loadHub();
+      });
+      itemsBox.appendChild(b);
+    }
+    return wrap;
+  }
+
+  function renderHub() {
+    const q = $("hubSearch").value.trim().toLowerCase().replace(/^#/, "");
+    const orders = groupOrders(hubData).filter((o) => {
+      if (hubFilter !== "all" && o.group !== hubFilter) return false;
+      if (!q) return true;
+      return o.items.some((r) => [r.order_id, r.item_id, r.product_name, r.store, r.buyer_name, r.buyer_phone, r.delivery_address]
+        .some((v) => String(v || "").toLowerCase().includes(q)));
+    });
+    const list = $("list");
+    list.textContent = "";
+    if (!hubData.length) { note("Nothing at the hub right now."); return; }
+    if (!orders.length) { note("Nothing matches. Clear the search or choose All."); return; }
+    list.appendChild(el("p", "sub", orders.length + " order(s)"));
+    orders.forEach((o) => list.appendChild(hubOrderCard(o)));
+  }
+
+  async function loadHub() {
+    const { data, error } = await sb.rpc("admin_hub_queue");
+    if (error) { note("Could not load the hub list: " + error.message, true); return; }
+    hubData = data;
+    const todo = groupOrders(data).filter((o) => o.group !== "wait").length;
+    $("cHub").textContent = todo ? String(todo) : "";
+    renderHub();
+  }
+  $("hubSearch").addEventListener("input", () => { if (status === "hub") renderHub(); });
+  document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+    hubFilter = c.dataset.f;
+    document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x === c));
+    renderHub();
+  }));
+
+  // Compact cards: show the name, status and a summary line; tap to open the details.
+  function compactCards() {
+    document.querySelectorAll("#list > .app:not(.hubcard)").forEach((card) => {
+      if (card.dataset.compact) return;
+      card.dataset.compact = "1";
+      const head = card.querySelector(".app-head");
+      if (!head) return;
+      const sub = card.querySelector(":scope > .sub");
+      const rest = [];
+      let n = sub ? sub.nextSibling : head.nextSibling;
+      while (n) { rest.push(n); n = n.nextSibling; }
+      const info = {};
+      card.querySelectorAll("dl dt").forEach((dt) => { info[dt.textContent] = dt.nextSibling ? dt.nextSibling.textContent : ""; });
+      if (sub) sub.textContent = [sub.textContent, info.City, info.Category].filter(Boolean).join(" · ");
+      const box = document.createElement("div");
+      box.className = "detail";
+      box.hidden = true;
+      rest.forEach((x) => box.appendChild(x));
+      card.appendChild(box);
+      const chev = el("span", "chev", "▾");
+      head.appendChild(chev);
+      head.addEventListener("click", () => { box.hidden = !box.hidden; chev.textContent = box.hidden ? "▾" : "▴"; });
+    });
+  }
+  new MutationObserver(compactCards).observe($("list"), { childList: true });
+
+  // ---------- Reports: buyer problem reports ----------
+  function reportCard(r) {
+    const wrap = el("section", "app hubcard");
+    const head = el("div", "app-head");
+    head.appendChild(el("h2", "", r.product_name + (r.qty > 1 ? " × " + r.qty : "")));
+    const labels = { open: ["Open", ""], refund_due: ["Refund due", "wait"], refunded: ["Refunded", "ok"], dismissed: ["Dismissed", "ok"] };
+    const lb = labels[r.status] || [r.status, ""];
+    head.appendChild(el("span", "stage " + lb[1], lb[0]));
+    wrap.appendChild(head);
+    const row = el("div", "hubitem");
+    const img = el("img", "hubimg"); img.alt = ""; img.loading = "lazy";
+    if (r.image) img.src = r.image;
+    row.appendChild(img);
+    const body = el("div", "hubbody");
+    body.appendChild(el("b", "", "₦" + Number(r.amount || 0).toLocaleString("en-NG")));
+    body.appendChild(el("span", "sub2", (r.store || "?") + (r.size ? " · " + r.size : "") + (r.color ? " · " + r.color : "")));
+    body.appendChild(el("span", "sub2", "Order #" + String(r.order_id).slice(0, 8).toUpperCase()));
+    row.appendChild(body);
+    wrap.appendChild(row);
+    const meta = el("p", "hubmeta");
+    meta.appendChild(el("b", "", r.reason));
+    meta.appendChild(document.createTextNode(" · " + (r.buyer_name || "Buyer") + " · " + (r.buyer_phone || "-") + " · " + new Date(r.created_at).toLocaleDateString()));
+    wrap.appendChild(meta);
+    if (r.details) wrap.appendChild(el("p", "hubmeta", "“" + r.details + "”"));
+    if (r.admin_note) wrap.appendChild(el("p", "hubmeta", "Your note: " + r.admin_note));
+    if (r.status === "refund_due") wrap.appendChild(el("p", "hubmeta", "Refund approved. Sending the money back to the buyer is the next step we build; until then refund this in Paystack by hand."));
+    if (r.status === "open") {
+      const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
+      input.placeholder = "Note (optional)";
+      input.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box";
+      wrap.appendChild(input);
+      const actions = el("div", "actions");
+      async function decide(decision, btn) {
+        const q = decision === "refund"
+          ? "Refund the buyer for this item? The seller will not be paid for it."
+          : "Dismiss this report? The seller will be paid for this item.";
+        if (!confirm(q)) return;
+        btn.disabled = true;
+        const { data, error } = await sb.rpc("admin_resolve_report", { p_report_id: r.report_id, p_decision: decision, p_note: input.value });
+        if (error || data !== "ok") { toast("Could not update: " + (error ? error.message : data), true); btn.disabled = false; return; }
+        toast("Done.");
+        loadReports();
+      }
+      const ref = el("button", "btn reject", "Refund buyer"); ref.type = "button";
+      const dis = el("button", "btn go", "Dismiss"); dis.type = "button";
+      ref.addEventListener("click", () => decide("refund", ref));
+      dis.addEventListener("click", () => decide("dismiss", dis));
+      actions.appendChild(ref); actions.appendChild(dis);
+      wrap.appendChild(actions);
+    }
+    return wrap;
+  }
+
+  async function loadReports() {
+    const { data, error } = await sb.rpc("admin_reports_list");
+    if (error) { note("Could not load reports: " + error.message, true); return; }
+    const open = data.filter((r) => r.status === "open").length;
+    $("cRep").textContent = open ? String(open) : "";
+    const list = $("list");
+    list.textContent = "";
+    if (!data.length) { note("No problem reports."); return; }
+    data.forEach((r) => list.appendChild(reportCard(r)));
+  }
+
+  // ---------- Menu, attention bar, Home and Costs ----------
+  const LIMITS = { db: 500 * 1048576, storage: 1024 * 1048576, accounts: 50000 };
+  function nairaShort(n) {
+    n = Number(n) || 0; const a = Math.abs(n);
+    if (a >= 1e6) return "₦" + (n / 1e6).toFixed(a >= 1e7 ? 0 : 1) + "M";
+    if (a >= 1e4) return "₦" + Math.round(n / 1e3) + "k";
+    return "₦" + Math.round(n).toLocaleString("en-NG");
+  }
+  function nairaFull(n) { return "₦" + Math.round(Number(n) || 0).toLocaleString("en-NG"); }
+  function mb(b) { b = Number(b) || 0; return b >= 1073741824 ? (b / 1073741824).toFixed(2) + " GB" : (b / 1048576).toFixed(1) + " MB"; }
+
+  function openDrawer(open) {
+    $("tabs").classList.toggle("open", open);
+    $("scrim").hidden = !open;
+  }
+  $("menuBtn").addEventListener("click", () => openDrawer(!$("tabs").classList.contains("open")));
+  $("scrim").addEventListener("click", () => openDrawer(false));
+  document.querySelectorAll("#appSeg button").forEach((b) => b.addEventListener("click", () => { status = b.dataset.s; load(); }));
+  function goTo(s) {
+    const t = document.querySelector('.tab[data-status="' + s + '"]');
+    if (t) t.click();
+  }
+
+  async function refreshAttn() {
+    const { data, error } = await sb.rpc("admin_dashboard");
+    if (error || !data) return null;
+    lastDash = data;
+    const set = (id, n) => { $(id).textContent = n ? String(n) : ""; };
+    set("cHub", data.need_hub); set("cPending", data.need_apps); set("cRep", Number(data.need_reports) + Number(data.need_refunds));
+    const bar = $("attn");
+    bar.textContent = "";
+    const add = (n, text, target, soft) => {
+      if (!n) return;
+      const b = el("button", soft ? "soft" : "", n + " " + text);
+      b.type = "button"; b.addEventListener("click", () => goTo(target));
+      bar.appendChild(b);
+    };
+    add(Number(data.need_hub), "in the hub", "hub");
+    add(Number(data.need_apps), "to approve", "pending");
+    add(Number(data.need_reports), "problem report(s)", "reports");
+    add(Number(data.need_refunds), "refund(s) to pay", "reports", true);
+    bar.hidden = !bar.children.length;
+    return data;
+  }
+  let lastDash = null;
+
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function sv(tag, attrs, text) {
+    const e = document.createElementNS(SVGNS, tag);
+    Object.keys(attrs || {}).forEach((k) => e.setAttribute(k, attrs[k]));
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function monthName(ym) { const p = ym.split("-"); return MONTHS[Number(p[1]) - 1] + " " + p[0]; }
+
+  // series: [{key,color,label}], stacked bars, one per month
+  function chart(months, series, onPick) {
+    const W = 340, H = 190, L = 40, B = 24, T = 10, R = 6;
+    const totals = months.map((m) => series.reduce((t, x) => t + Number(m[x.key] || 0), 0));
+    let max = Math.max.apply(null, totals.concat([1000]));
+    const mag = Math.pow(10, Math.floor(Math.log10(max)));
+    max = Math.ceil(max / mag * 2) / 2 * mag; // round up to a neat number
+    const svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img" });
+    for (let i = 0; i <= 4; i++) {
+      const y = T + (H - T - B) * (1 - i / 4);
+      svg.appendChild(sv("line", { x1: L, x2: W - R, y1: y, y2: y, stroke: "#e5e7eb", "stroke-width": 1 }));
+      svg.appendChild(sv("text", { x: L - 5, y: y + 4, "text-anchor": "end", "font-size": 10, fill: "#6b7280" }, nairaShort(max * i / 4)));
+    }
+    const bw = (W - L - R) / months.length;
+    months.forEach((m, i) => {
+      let y = H - B;
+      series.forEach((x) => {
+        const h = (H - T - B) * (Number(m[x.key] || 0) / max);
+        if (h > 0) { svg.appendChild(sv("rect", { x: L + i * bw + bw * 0.18, y: y - h, width: bw * 0.64, height: h, rx: 2, fill: x.color })); y -= h; }
+      });
+      const hit = sv("rect", { x: L + i * bw, y: T, width: bw, height: H - T - B, fill: "transparent", style: "cursor:pointer" });
+      hit.addEventListener("click", () => onPick(i));
+      svg.appendChild(hit);
+      svg.appendChild(sv("text", { x: L + i * bw + bw / 2, y: H - 8, "text-anchor": "middle", "font-size": 10, fill: "#6b7280" }, MONTHS[Number(m.month.split("-")[1]) - 1][0]));
+    });
+    return svg;
+  }
+
+  function tile(values) {
+    let i = 0;
+    const b = el("button", "tile"); b.type = "button";
+    const n = el("div", "n"), l = el("div", "l"), h = el("div", "h");
+    b.appendChild(n); b.appendChild(l); b.appendChild(h);
+    const draw = () => { n.textContent = values[i].n; l.textContent = values[i].l; h.textContent = values.length > 1 ? "Tap to switch" : ""; };
+    b.addEventListener("click", () => { i = (i + 1) % values.length; draw(); });
+    draw();
+    return b;
+  }
+
+  function meter(label, used, limit, text) {
+    const pct = Math.min(100, used / limit * 100);
+    const d = el("div", "meter");
+    const row = el("div", "row"); row.appendChild(el("span", "", label)); row.appendChild(el("span", "", text + " · " + pct.toFixed(pct < 10 ? 1 : 0) + "%"));
+    const bar = el("div", "bar"); const f = el("i", pct > 90 ? "bad" : pct > 70 ? "warn" : ""); f.style.width = Math.max(pct, 1) + "%"; bar.appendChild(f);
+    d.appendChild(row); d.appendChild(bar);
+    return d;
+  }
+
+  async function loadHome() {
+    const d = await refreshAttn();
+    if (!d) { note("Could not load the numbers. Please try again.", true); return; }
+    const list = $("list"); list.textContent = "";
+    const home = el("div", "home"); list.appendChild(home);
+
+    const tiles = el("div", "tiles"); home.appendChild(tiles);
+    tiles.appendChild(tile([{ n: d.accounts_7d, l: "New accounts · 7 days" }, { n: d.accounts_30d, l: "New accounts · 30 days" }, { n: d.accounts_total, l: "All accounts" }]));
+    tiles.appendChild(tile([{ n: d.buyers_total, l: "Total buyers" }]));
+    tiles.appendChild(tile([{ n: d.sellers_7d, l: "New sellers · 7 days" }, { n: d.sellers_30d, l: "New sellers · 30 days" }]));
+    tiles.appendChild(tile([{ n: d.sellers_total, l: "Total sellers" }]));
+    tiles.appendChild(tile([{ n: nairaFull(d.sales_month), l: "Sales this month · " + d.orders_month + " orders" }, { n: nairaFull(d.sales_all), l: "Sales all time · " + d.orders_paid + " orders" }]));
+    tiles.appendChild(tile([{ n: d.orders_paid, l: "Paid orders (all time)" }, { n: d.products, l: "Products listed" }]));
+
+    // Chart card: swipe between revenue and expenses
+    const months = d.months || [];
+    const card = el("div", "card"); home.appendChild(card);
+    const seg = el("div", "seg");
+    const bRev = el("button", "on", "Revenue"), bExp = el("button", "", "Expenses");
+    bRev.type = bExp.type = "button"; seg.appendChild(bRev); seg.appendChild(bExp); card.appendChild(seg);
+    const slides = el("div", "slides"); card.appendChild(slides);
+    const s1 = el("div", "slide"), s2 = el("div", "slide"); slides.appendChild(s1); slides.appendChild(s2);
+
+    const cap1 = el("p", "cap"), cap2 = el("p", "cap");
+    const sum = (k) => months.reduce((t, m) => t + Number(m[k] || 0), 0);
+    const showRev = (i) => { const m = months[i]; cap1.textContent = ""; const b = el("b", "", monthName(m.month)); cap1.appendChild(b); cap1.appendChild(document.createTextNode(": revenue " + nairaFull(m.revenue) + " · sales " + nairaFull(m.sales))); };
+    const showExp = (i) => {
+      const m = months[i]; const out = Number(m.payouts) + Number(m.refunds) + Number(m.costs);
+      cap2.textContent = ""; cap2.appendChild(el("b", "", monthName(m.month)));
+      cap2.appendChild(document.createTextNode(": payouts " + nairaFull(m.payouts) + " · refunds " + nairaFull(m.refunds) + " · my costs " + nairaFull(m.costs) + " · profit " + nairaFull(Number(m.revenue) - out)));
+    };
+    s1.appendChild(el("h2", "", "Monthly revenue"));
+    s1.appendChild(el("p", "cap", "BODEGS's " + d.commission_percent + "% on delivered items plus cancellation fees. Tap a bar. Swipe for expenses."));
+    s1.appendChild(chart(months, [{ key: "revenue", color: "#4f46e5" }], showRev));
+    s1.appendChild(cap1);
+    s2.appendChild(el("h2", "", "Monthly expenses"));
+    const lg = el("div", "legend");
+    [["#111827", "Seller payouts"], ["#ef4444", "Refunds"], ["#f59e0b", "My costs"]].forEach((x) => { const sp = el("span"); const i = el("i"); i.style.background = x[0]; sp.appendChild(i); sp.appendChild(document.createTextNode(x[1])); lg.appendChild(sp); });
+    s2.appendChild(lg);
+    s2.appendChild(chart(months, [{ key: "payouts", color: "#111827" }, { key: "refunds", color: "#ef4444" }, { key: "costs", color: "#f59e0b" }], showExp));
+    s2.appendChild(cap2);
+    if (months.length) { showRev(months.length - 1); showExp(months.length - 1); }
+    const go = (n) => { slides.scrollTo({ left: n * slides.clientWidth, behavior: "smooth" }); };
+    bRev.addEventListener("click", () => go(0)); bExp.addEventListener("click", () => go(1));
+    slides.addEventListener("scroll", () => { const n = Math.round(slides.scrollLeft / slides.clientWidth); bRev.classList.toggle("on", n === 0); bExp.classList.toggle("on", n === 1); });
+    const tot = el("p", "cap"); tot.textContent = "Last 12 months: revenue " + nairaFull(sum("revenue")) + " · expenses " + nairaFull(sum("payouts") + sum("refunds") + sum("costs")) + ". Add your own costs under Costs.";
+    card.appendChild(tot);
+
+    // Capacity
+    const cap = el("div", "card"); home.appendChild(cap);
+    cap.appendChild(el("h2", "", "Is it time to upgrade?"));
+    cap.appendChild(el("p", "cap", "Free plan limits. When a bar passes 70%, plan to clean up or upgrade."));
+    cap.appendChild(meter("Database", Number(d.db_bytes), LIMITS.db, mb(d.db_bytes) + " of " + mb(LIMITS.db)));
+    cap.appendChild(meter("File storage (photos)", Number(d.storage_bytes), LIMITS.storage, mb(d.storage_bytes) + " of " + mb(LIMITS.storage)));
+    cap.appendChild(meter("Accounts", Number(d.accounts_total), LIMITS.accounts, d.accounts_total + " of " + LIMITS.accounts.toLocaleString("en-NG")));
+  }
+
+  async function loadCosts() {
+    const { data, error } = await sb.rpc("admin_costs_list");
+    if (error) { note("Could not load costs: " + error.message, true); return; }
+    const list = $("list"); list.textContent = "";
+    const home = el("div", "home"); list.appendChild(home);
+    const card = el("div", "card"); home.appendChild(card);
+    card.appendChild(el("h2", "", "Add a cost"));
+    card.appendChild(el("p", "cap", "Hosting, domain, Paystack fees, anything you spend to run BODEGS. It shows in the expenses chart."));
+    const f = el("div", "costform"); card.appendChild(f);
+    const dt = el("input"); dt.type = "date"; dt.value = new Date().toISOString().slice(0, 10);
+    const am = el("input"); am.type = "number"; am.inputMode = "decimal"; am.min = "0"; am.placeholder = "Amount (₦)";
+    const lb = el("input", "wide"); lb.type = "text"; lb.maxLength = 80; lb.placeholder = "What was it for? e.g. Domain renewal";
+    const add = el("button", "btn go wide", "Add cost"); add.type = "button";
+    f.appendChild(dt); f.appendChild(am); f.appendChild(lb); f.appendChild(add);
+    add.addEventListener("click", async () => {
+      add.disabled = true;
+      const { data: r, error: e } = await sb.rpc("admin_add_cost", { p_date: dt.value || null, p_label: lb.value, p_amount: Number(am.value) });
+      if (e || r !== "ok") { toast(r === "label_needed" ? "Write what it was for." : r === "bad_amount" ? "Enter a valid amount." : "Could not save.", true); add.disabled = false; return; }
+      toast("Cost added."); loadCosts();
+    });
+    const hist = el("div", "card"); home.appendChild(hist);
+    hist.appendChild(el("h2", "", "Recent costs"));
+    if (!data.length) hist.appendChild(el("p", "cap", "Nothing yet."));
+    data.forEach((c) => {
+      const row = el("div", "costrow");
+      const left = el("div"); left.appendChild(document.createTextNode(c.label)); left.appendChild(el("small", "", new Date(c.cost_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })));
+      const right = el("div"); right.appendChild(el("b", "", nairaFull(c.amount)));
+      const del = el("button", "", "Delete"); del.type = "button";
+      del.addEventListener("click", async () => { if (!confirm("Delete this cost?")) return; await sb.rpc("admin_delete_cost", { p_id: c.id }); loadCosts(); });
+      row.appendChild(left); row.appendChild(right); row.appendChild(del); hist.appendChild(row);
+    });
+  }
+
+  async function load() {
+    note("Loading...");
+    $("title").textContent = TITLES[status] || "Admin";
+    const inApps = status === "pending" || status === "approved" || status === "rejected";
+    $("appSeg").hidden = !inApps;
+    document.querySelectorAll("#appSeg button").forEach((b) => b.classList.toggle("on", b.dataset.s === status));
+    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.status === status || (inApps && t.dataset.status === "pending")));
+    $("hubbar").hidden = status !== "hub";
+    if (status !== "home") refreshAttn();
+    if (status === "home") { return loadHome(); }
+    if (status === "costs") { return loadCosts(); }
+    if (status === "hub") { return loadHub(); }
+    if (status === "reports") { return loadReports(); }
+    if (status === "sellers") { return loadSellers(); }
+    const { data, error } = await sb
+      .from("seller_applications")
+      .select("id, user_id, full_name, boutique_name, phone, email, city, category, about, social, cac_number, " +
+              "id_doc_path, cac_doc_path, address_doc_path, status, rejection_reason, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) { note("Could not load applications. Please try again.", true); return; }
+
+    // Which accounts already own a boutique? (Used for the warning on pending cards.)
+    ownerBoutiques = {};
+    const sellerResult = await sb.from("sellers").select("owner_id, boutique_name");
+    if (!sellerResult.error && sellerResult.data) {
+      sellerResult.data.forEach((s) => { ownerBoutiques[s.owner_id] = s.boutique_name; });
+    }
+
+    const pending = data.filter((a) => a.status === "pending").length;
+    $("cPending").textContent = pending ? String(pending) : "";
+
+    const shown = data.filter((a) => a.status === status);
+    const list = $("list");
+    list.textContent = "";
+    if (!shown.length) { note("No " + status + " applications."); return; }
+    shown.forEach((a) => list.appendChild(card(a)));
+  }
+
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      status = tab.dataset.status;
+      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t === tab));
+      openDrawer(false);
+      window.scrollTo(0, 0);
+      load();
+    });
+  });
+
+  (async function start() {
+    const user = await requireLogin();
+    if (!user) return;
+
+    const { data: profile, error } = await sb.from("profiles").select("role").eq("id", user.id).single();
+    if (error || !profile || profile.role !== "admin") {
+      note("This page is for BODEGS administrators only.", true);
+      return;
+    }
+    $("tabs").hidden = false;
+    load();
+  })();
+</script>
+</body>
+</html>
