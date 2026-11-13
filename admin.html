@@ -628,7 +628,39 @@
     wrap.appendChild(meta);
     if (r.details) wrap.appendChild(el("p", "hubmeta", "“" + r.details + "”"));
     if (r.admin_note) wrap.appendChild(el("p", "hubmeta", "Your note: " + r.admin_note));
-    if (r.status === "refund_due") wrap.appendChild(el("p", "hubmeta", "Refund approved. Sending the money back to the buyer is the next step we build; until then refund this in Paystack by hand."));
+    if (r.status === "refund_due") {
+      const locked = !!r.refund_started_at;
+      if (r.refund_error) wrap.appendChild(el("p", "hubmeta", (locked ? "Warning: " : "Paystack said: ") + r.refund_error));
+      else wrap.appendChild(el("p", "hubmeta", "Refund approved. Send it to the buyer's card through Paystack."));
+      const acts = el("div", "actions");
+      if (!locked) {
+        const send = el("button", "btn pass", "Send refund " + nairaFull(r.amount)); send.type = "button";
+        send.addEventListener("click", async () => {
+          if (!confirm("Send " + nairaFull(r.amount) + " back to the buyer through Paystack?")) return;
+          send.disabled = true; send.textContent = "Sending...";
+          const { data, error } = await sb.functions.invoke("refund-item", { body: { report_id: r.report_id } });
+          if (error || !data || !data.refunded) {
+            let msg = "Could not send the refund.";
+            try { if (error && error.context) { const j = await error.context.json(); if (j && j.error) msg = j.error; } } catch (e) {}
+            toast(msg, true);
+            loadReports();
+            return;
+          }
+          toast("Refund sent.");
+          loadReports();
+        });
+        acts.appendChild(send);
+      }
+      const manual = el("button", "btn go", locked ? "I checked, it was sent" : "I refunded it myself"); manual.type = "button";
+      manual.addEventListener("click", async () => {
+        if (!confirm("Mark this as refunded? Only do this if the money really went back to the buyer.")) return;
+        const { data, error } = await sb.rpc("admin_mark_refunded", { p_report_id: r.report_id });
+        if (error || data !== "ok") { toast("Could not update.", true); return; }
+        toast("Marked as refunded."); loadReports();
+      });
+      acts.appendChild(manual);
+      wrap.appendChild(acts);
+    }
     if (r.status === "open") {
       const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
       input.placeholder = "Note (optional)";
