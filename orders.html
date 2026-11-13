@@ -577,6 +577,9 @@
       margin-bottom: 10px;
     }
 
+    .od-report { margin: -4px 0 12px 66px; padding: 0; background: none; border: 0; color: #a8372f; font-size: 13px; font-weight: 700; text-decoration: underline; cursor: pointer; font-family: inherit; }
+    .od-confirm-box select, .od-confirm-box textarea { width: 100%; box-sizing: border-box; margin: 6px 0; padding: 11px 12px; font: inherit; font-size: 14px; border: 1px solid rgba(23,59,50,.35); border-radius: 10px; background: transparent; color: inherit; }
+
     .od-item img {
       width: 56px;
       height: 56px;
@@ -1230,6 +1233,23 @@
     document.body.appendChild(odBackdrop);
     const odSheet = odBackdrop.firstChild;
     let odOpen = false;
+    let reportStatus = {};
+    const REPORT_WINDOW_MS = 48 * 3600 * 1000;
+    function reportNote(p) {
+      const st = reportStatus[String(p.id)];
+      if (st === "open") return "Problem reported. We are looking into it.";
+      if (st === "refund_due") return "Refund approved. It will be sent to your payment method.";
+      if (st === "refunded") return "Refunded.";
+      if (st === "dismissed") return "Report reviewed. No refund was due.";
+      return "";
+    }
+    function canReport(order, p) {
+      if (!order.paid || normaliseStatus(order.status) === "cancelled") return false;
+      if (reportStatus[String(p.id)]) return false;
+      if (!p.dispatched) return false;
+      if (p.delivered && p.deliveredAt && Date.now() > new Date(p.deliveredAt).getTime() + REPORT_WINDOW_MS) return false;
+      return true;
+    }
 
     function showOrderDetails(order) {
       const stage = orderStage(order);
@@ -1291,7 +1311,9 @@
               <small>${extra ? escapeHTML(extra) + " · " : ""}Qty ${qty}</small>
             </div>
             <strong>${formatMoney((Number(p.price) || 0) * qty)}</strong>
-          </div>`;
+          </div>
+          ${reportNote(p) ? `<p class="od-sub" style="margin:-4px 0 10px 66px">${escapeHTML(reportNote(p))}</p>` : ""}
+          ${canReport(order, p) ? `<button type="button" class="od-report" data-report="${escapeHTML(p.id)}" data-pname="${escapeHTML(p.name || "this item")}">Report a problem</button>` : ""}`;
       }).join("") : '<p class="od-sub">Order items unavailable</p>';
 
       const line = (a, b) => b ? `<div class="od-row"><span>${a}</span><span>${escapeHTML(b)}</span></div>` : "";
@@ -1358,6 +1380,63 @@
       if (order) showOrderDetails(order);
     });
 
+
+    /* ---------- report a problem with an item ---------- */
+    document.addEventListener("click", function (event) {
+      const button = event.target.closest("[data-report]");
+      if (!button) return;
+      const itemId = button.getAttribute("data-report");
+      const pname = button.getAttribute("data-pname") || "this item";
+      const wrap = document.createElement("div");
+      wrap.className = "od-confirm";
+      wrap.innerHTML = `
+        <div class="od-confirm-box dk-skip" role="alertdialog" aria-modal="true">
+          <h3>Report a problem</h3>
+          <p>${escapeHTML(pname)}. You can report within 48 hours after delivery. Our team will review it and may refund you.</p>
+          <select id="rpReason">
+            <option value="">What is the problem?</option>
+            <option>Wrong item</option>
+            <option>Damaged</option>
+            <option>Not as described</option>
+            <option>Wrong size</option>
+            <option>Other</option>
+          </select>
+          <textarea id="rpDetails" rows="3" maxlength="1000" placeholder="Tell us more (optional)"></textarea>
+          <p id="rpMsg" style="color:#a8372f;margin:0"></p>
+          <button type="button" class="od-yes">Send report</button>
+          <button type="button" class="od-no">Cancel</button>
+        </div>`;
+      document.body.appendChild(wrap);
+      const box = wrap.firstElementChild;
+      box.style.background = getComputedStyle(odSheet).backgroundColor;
+      const close = () => wrap.remove();
+      box.querySelector(".od-no").addEventListener("click", close);
+      const go = box.querySelector(".od-yes");
+      go.addEventListener("click", async () => {
+        const reason = box.querySelector("#rpReason").value;
+        const msg = box.querySelector("#rpMsg");
+        if (!reason) { msg.textContent = "Please choose what the problem is."; return; }
+        go.disabled = true; go.textContent = "Sending...";
+        const { data, error } = await sb.rpc("buyer_report_problem", {
+          p_item_id: String(itemId), p_reason: reason, p_details: box.querySelector("#rpDetails").value
+        });
+        const texts = {
+          not_sent_yet: "This item has not been sent to you yet.",
+          window_closed: "The 48-hour window for this item has closed.",
+          already_reported: "You have already reported this item.",
+          not_paid: "This order is not paid.",
+          not_yours: "This is not your order."
+        };
+        if (error || data !== "ok") {
+          msg.textContent = error ? "We could not send this. Please try again." : (texts[data] || "We could not send this. Please try again.");
+          go.disabled = false; go.textContent = "Send report";
+          return;
+        }
+        close();
+        alert("Thank you. We received your report and will review it.");
+        location.reload();
+      });
+    });
 
     /* ---------- confirm that an order arrived ---------- */
     document.addEventListener("click", function (event) {
@@ -1514,7 +1593,7 @@
         .from("orders")
         .select(
           "id, status, payment_status, total, created_at, customer_name, phone, delivery_address, city, cancel_fee, refund_amount, " +
-          "order_items(qty, price_at_purchase, product_name, product_image, size, color, shipped_at, delivered_at, hub_received_at, dispatched_at)"
+          "order_items(id, qty, price_at_purchase, product_name, product_image, size, color, shipped_at, delivered_at, hub_received_at, dispatched_at)"
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -1525,6 +1604,12 @@
           'Please check your connection and try again.</div>';
         return;
       }
+
+      reportStatus = {};
+      try {
+        const rep = await sb.from("item_reports").select("item_id, status");
+        if (!rep.error && rep.data) rep.data.forEach(r => { reportStatus[String(r.item_id)] = r.status; });
+      } catch (e) {}
 
       loadedOrders = data.map(order => ({
         id: "BOD-" + String(order.id).slice(0, 8).toUpperCase(),
@@ -1543,6 +1628,7 @@
           name: item.product_name,
           image: item.product_image,
           price: item.price_at_purchase,
+          id: item.id,
           quantity: item.qty,
           size: item.size,
           color: item.color,
