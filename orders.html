@@ -1432,9 +1432,11 @@
           go.disabled = false; go.textContent = "Send report";
           return;
         }
-        close();
-        alert("Thank you. We received your report and will review it.");
-        location.reload();
+        box.innerHTML = `
+          <h3>Thank you</h3>
+          <p>We received your report and will review it. We will update the item here once we have decided.</p>
+          <button type="button" class="od-yes">OK</button>`;
+        box.querySelector(".od-yes").addEventListener("click", () => { wrap.remove(); location.reload(); });
       });
     });
 

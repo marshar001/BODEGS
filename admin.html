@@ -15,8 +15,8 @@
     .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .top h1 { font-size: 17px; margin: 0; }
     .top a { color: var(--muted); font-size: 14px; text-decoration: none; }
-    .tabs { display: flex; gap: 8px; margin-top: 12px; }
-    .tab { flex: 1; padding: 10px 4px; font-size: 13px; font-family: inherit; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; cursor: pointer; color: var(--ink); }
+    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+    .tab { padding: 8px 4px; font-size: 13px; white-space: nowrap; font-family: inherit; border: 1.5px solid var(--line); background: #fff; border-radius: 10px; cursor: pointer; color: var(--ink); }
     .tab.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 
     main { max-width: 640px; margin: 0 auto; padding: 16px 16px 60px; }
@@ -97,7 +97,7 @@
     #toast.err { background: var(--red); }
   </style>
 </head>
-<body>
+<body style="overflow-x:hidden">
 
 <header>
   <div class="top">
@@ -561,7 +561,7 @@
     if (r.status === "open") {
       const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
       input.placeholder = "Note (optional)";
-      input.style.marginTop = "8px";
+      input.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box";
       wrap.appendChild(input);
       const actions = el("div", "actions");
       async function decide(decision, btn) {
