@@ -632,8 +632,11 @@
       const locked = !!r.refund_started_at;
       if (r.refund_error) wrap.appendChild(el("p", "hubmeta", (locked ? "Warning: " : "Paystack said: ") + r.refund_error));
       else wrap.appendChild(el("p", "hubmeta", "Refund approved. Send it to the buyer's card through Paystack."));
+      wrap.appendChild(el("p", "hubmeta", r.payment_reference
+        ? "Paystack reference: " + r.payment_reference + (r.buyer_email ? " · Buyer email: " + r.buyer_email : "")
+        : "No Paystack payment is on record for this order (it was placed before payments were connected), so there is nothing to send back through Paystack. Use \"I refunded it myself\" to close it."));
       const acts = el("div", "actions");
-      if (!locked) {
+      if (!locked && r.payment_reference) {
         const send = el("button", "btn pass", "Send refund " + nairaFull(r.amount)); send.type = "button";
         send.addEventListener("click", async () => {
           if (!confirm("Send " + nairaFull(r.amount) + " back to the buyer through Paystack?")) return;
@@ -642,6 +645,7 @@
           if (error || !data || !data.refunded) {
             let msg = "Could not send the refund.";
             try { if (error && error.context) { const j = await error.context.json(); if (j && j.error) msg = j.error; } } catch (e) {}
+            if (msg === "no payment reference") msg = "This order has no Paystack payment on record, so there is nothing to refund.";
             toast(msg, true);
             loadReports();
             return;
