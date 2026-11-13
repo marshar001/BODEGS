@@ -140,6 +140,21 @@
     #toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 440px; margin: 0 auto; padding: 13px 15px; border-radius: 12px; font-size: 14px; background: #111; color: #fff; z-index: 9; }
     #toast.err { background: var(--red); }
   </style>
+<script>
+  // Shows any page error on screen, so a stuck page tells us why.
+  (function () {
+    function show(msg) {
+      var l = document.getElementById("list");
+      if (l) l.innerHTML = '<p style="padding:24px;color:#b91c1c;font:14px/1.5 system-ui;overflow-wrap:anywhere">Page error: ' + String(msg).replace(/</g, "&lt;") + '</p>';
+    }
+    window.addEventListener("error", function (e) { show((e.message || e.error) + " (line " + e.lineno + ")"); });
+    window.addEventListener("unhandledrejection", function (e) { show((e.reason && e.reason.message) || e.reason); });
+    setTimeout(function () {
+      var l = document.getElementById("list");
+      if (l && /Checking access/.test(l.textContent)) show("Still checking access after 10 seconds. The connection to the database is slow or blocked.");
+    }, 10000);
+  })();
+</script>
 </head>
 <body style="overflow-x:hidden">
 
