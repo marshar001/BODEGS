@@ -1234,14 +1234,31 @@
     const odSheet = odBackdrop.firstChild;
     let odOpen = false;
     let reportStatus = {};
-    const REPORT_WINDOW_MS = 48 * 3600 * 1000;
+    let hubAddress = "";
+    const REPORT_WINDOW_MS = 3 * 24 * 3600 * 1000;
+    function fmtDay(d) { return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" }); }
     function reportNote(p) {
-      const st = reportStatus[String(p.id)];
-      if (st === "open") return "Problem reported. We are looking into it.";
-      if (st === "refund_due") return "Refund approved. It will be sent to your payment method.";
-      if (st === "refunded") return "Refunded.";
-      if (st === "dismissed") return "Report reviewed. No refund was due.";
+      const r = reportStatus[String(p.id)];
+      if (!r) return "";
+      const money = (n) => formatMoney(Number(n) || 0);
+      const price = (Number(p.price) || 0) * (Number(p.quantity) || 1);
+      const refund = price * (1 - (Number(r.return_fee_percent) || 0) / 100);
+      if (r.status === "open") return "Problem reported. We are reviewing it.";
+      if (r.status === "return_approved") {
+        const fee = Number(r.return_fee_percent) || 0;
+        return "Return approved. Send the item to our hub" + (hubAddress ? " (" + hubAddress + ")" : "") + (r.return_deadline ? " by " + fmtDay(r.return_deadline) : "") + ", then tap the button below. " +
+          (fee > 0 ? "A " + fee + "% return fee applies, so your refund will be " + money(refund) + "." : "No return fee applies. Your refund will be " + money(refund) + ".");
+      }
+      if (r.status === "return_sent") return "Waiting for our hub to receive your return. Your refund will be " + money(refund) + ".";
+      if (r.status === "refund_due") return "We received your return. Your refund of " + money(refund) + " is on its way.";
+      if (r.status === "refunded") return "Refunded " + money(r.refund_amount || refund) + ".";
+      if (r.status === "dismissed") return "Report reviewed. No return or refund was approved.";
+      if (r.status === "expired") return "The return period ended, so no refund is due.";
       return "";
+    }
+    function canMarkReturned(p) {
+      const r = reportStatus[String(p.id)];
+      return !!r && r.status === "return_approved";
     }
     function canReport(order, p) {
       if (!order.paid || normaliseStatus(order.status) === "cancelled") return false;
@@ -1313,6 +1330,7 @@
             <strong>${formatMoney((Number(p.price) || 0) * qty)}</strong>
           </div>
           ${reportNote(p) ? `<p class="od-sub" style="margin:-4px 0 10px 66px">${escapeHTML(reportNote(p))}</p>` : ""}
+          ${canMarkReturned(p) ? `<button type="button" class="od-report" data-returned="${escapeHTML(reportStatus[String(p.id)].id)}">I have sent it back</button>` : ""}
           ${canReport(order, p) ? `<button type="button" class="od-report" data-report="${escapeHTML(p.id)}" data-pname="${escapeHTML(p.name || "this item")}">Report a problem</button>` : ""}`;
       }).join("") : '<p class="od-sub">Order items unavailable</p>';
 
@@ -1392,7 +1410,7 @@
       wrap.innerHTML = `
         <div class="od-confirm-box dk-skip" role="alertdialog" aria-modal="true">
           <h3>Report a problem</h3>
-          <p>${escapeHTML(pname)}. You can report within 48 hours after delivery. Our team will review it and may refund you.</p>
+          <p>${escapeHTML(pname)}. You can report within 3 days after delivery. If we approve, you send the item to our hub and a 15% return fee may apply to cover transport.</p>
           <select id="rpReason">
             <option value="">What is the problem?</option>
             <option>Wrong item</option>
@@ -1422,7 +1440,7 @@
         });
         const texts = {
           not_sent_yet: "This item has not been sent to you yet.",
-          window_closed: "The 48-hour window for this item has closed.",
+          window_closed: "The 3-day window for this item has closed.",
           already_reported: "You have already reported this item.",
           not_paid: "This order is not paid.",
           not_yours: "This is not your order."
@@ -1438,6 +1456,17 @@
           <button type="button" class="od-yes">OK</button>`;
         box.querySelector(".od-yes").addEventListener("click", () => { wrap.remove(); location.reload(); });
       });
+    });
+
+    /* ---------- "I have sent it back" ---------- */
+    document.addEventListener("click", async function (event) {
+      const button = event.target.closest("[data-returned]");
+      if (!button) return;
+      if (!confirm("Tap OK only after you have handed the item over or sent it to our hub.")) return;
+      button.disabled = true;
+      const { data, error } = await sb.rpc("buyer_mark_returned", { p_report_id: String(button.getAttribute("data-returned")) });
+      if (error || data !== "ok") { alert("We could not update this. Please try again."); button.disabled = false; return; }
+      location.reload();
     });
 
     /* ---------- confirm that an order arrived ---------- */
@@ -1609,8 +1638,12 @@
 
       reportStatus = {};
       try {
-        const rep = await sb.from("item_reports").select("item_id, status");
-        if (!rep.error && rep.data) rep.data.forEach(r => { reportStatus[String(r.item_id)] = r.status; });
+        const rep = await sb.from("item_reports").select("id, item_id, status, return_fee_percent, return_deadline, refund_amount");
+        if (!rep.error && rep.data) rep.data.forEach(r => { reportStatus[String(r.item_id)] = r; });
+        if (rep.data && rep.data.some(r => r.status === "return_approved")) {
+          const h = await sb.rpc("get_hub_address");
+          if (!h.error && h.data) hubAddress = String(h.data);
+        }
       } catch (e) {}
 
       loadedOrders = data.map(order => ({

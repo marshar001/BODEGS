@@ -608,7 +608,10 @@
     const wrap = el("section", "app hubcard");
     const head = el("div", "app-head");
     head.appendChild(el("h2", "", r.product_name + (r.qty > 1 ? " × " + r.qty : "")));
-    const labels = { open: ["Open", ""], refund_due: ["Refund due", "wait"], refunded: ["Refunded", "ok"], dismissed: ["Dismissed", "ok"] };
+    const labels = {
+      open: ["Needs decision", ""], return_approved: ["Waiting for return", "wait"], return_sent: ["Buyer sent it back", ""],
+      refund_due: ["Refund due", "wait"], refunded: ["Refunded", "ok"], dismissed: ["Dismissed", "ok"], expired: ["Expired", "ok"]
+    };
     const lb = labels[r.status] || [r.status, ""];
     head.appendChild(el("span", "stage " + lb[1], lb[0]));
     wrap.appendChild(head);
@@ -617,7 +620,7 @@
     if (r.image) img.src = r.image;
     row.appendChild(img);
     const body = el("div", "hubbody");
-    body.appendChild(el("b", "", "₦" + Number(r.amount || 0).toLocaleString("en-NG")));
+    body.appendChild(el("b", "", nairaFull(r.amount)));
     body.appendChild(el("span", "sub2", (r.store || "?") + (r.size ? " · " + r.size : "") + (r.color ? " · " + r.color : "")));
     body.appendChild(el("span", "sub2", "Order #" + String(r.order_id).slice(0, 8).toUpperCase()));
     row.appendChild(body);
@@ -628,67 +631,77 @@
     wrap.appendChild(meta);
     if (r.details) wrap.appendChild(el("p", "hubmeta", "“" + r.details + "”"));
     if (r.admin_note) wrap.appendChild(el("p", "hubmeta", "Your note: " + r.admin_note));
-    if (r.status === "refund_due") {
+    const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    if (r.status !== "open" && r.status !== "dismissed" && r.return_fee_percent !== null && r.return_fee_percent !== undefined) {
+      wrap.appendChild(el("p", "hubmeta", Number(r.return_fee_percent) > 0
+        ? "Return fee " + r.return_fee_percent + "% kept. Refund will be " + nairaFull(r.refund_due_amount) + "."
+        : "Fee waived. Refund will be " + nairaFull(r.refund_due_amount) + "."));
+    }
+    const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300; input.placeholder = "Note (optional)";
+    input.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box";
+
+    async function run(btn, fn, args, ask, okText) {
+      if (ask && !confirm(ask)) return;
+      btn.disabled = true;
+      const { data, error } = await sb.rpc(fn, args);
+      if (error || data !== "ok") { toast("Could not update: " + (error ? error.message : data), true); btn.disabled = false; return; }
+      toast(okText); loadReports();
+    }
+
+    const acts = el("div", "actions");
+    if (r.status === "open") {
+      wrap.appendChild(input);
+      const lab = el("label", "hubmeta");
+      lab.style.cssText = "display:flex;gap:8px;align-items:center;margin-top:8px";
+      const cb = el("input"); cb.type = "checkbox";
+      lab.appendChild(cb); lab.appendChild(document.createTextNode("Waive the 15% fee (damaged or wrong item, not the buyer's fault)"));
+      wrap.appendChild(lab);
+      const ok = el("button", "btn go", "Approve return"); ok.type = "button";
+      const no = el("button", "btn reject", "Dismiss"); no.type = "button";
+      ok.addEventListener("click", () => run(ok, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "approve", p_note: input.value, p_waive_fee: cb.checked },
+        "Approve this return" + (cb.checked ? " with the fee waived" : " with a 15% fee") + "? The buyer then has 7 days to send the item to the hub.", "Return approved."));
+      no.addEventListener("click", () => run(no, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "dismiss", p_note: input.value, p_waive_fee: false },
+        "Dismiss this report? The buyer keeps the item and the seller will be paid.", "Dismissed."));
+      acts.appendChild(ok); acts.appendChild(no);
+    } else if (r.status === "return_approved" || r.status === "return_sent") {
+      wrap.appendChild(el("p", "hubmeta", (r.status === "return_sent" ? "Buyer says it was sent back" + (r.return_sent_at ? " on " + fmtDate(r.return_sent_at) : "") + ". " : "") +
+        "The buyer must get it to the hub by " + (r.return_deadline ? fmtDate(r.return_deadline) : "the deadline") + "."));
+      wrap.appendChild(input);
+      const got = el("button", "btn pass", "Return received at hub"); got.type = "button";
+      got.addEventListener("click", () => run(got, "admin_mark_return_received", { p_report_id: r.report_id, p_note: input.value },
+        "Mark the returned item as received at the hub? This unlocks the refund.", "Return received. You can now send the refund."));
+      acts.appendChild(got);
+    } else if (r.status === "refund_due") {
       const locked = !!r.refund_started_at;
       if (r.refund_error) wrap.appendChild(el("p", "hubmeta", (locked ? "Warning: " : "Paystack said: ") + r.refund_error));
-      else wrap.appendChild(el("p", "hubmeta", "Refund approved. Send it to the buyer's card through Paystack."));
+      else wrap.appendChild(el("p", "hubmeta", "The item is back at the hub. Send the refund through Paystack."));
       wrap.appendChild(el("p", "hubmeta", r.payment_reference
         ? "Paystack reference: " + r.payment_reference + (r.buyer_email ? " · Buyer email: " + r.buyer_email : "")
         : "No Paystack payment is on record for this order (it was placed before payments were connected), so there is nothing to send back through Paystack. Use \"I refunded it myself\" to close it."));
-      const acts = el("div", "actions");
       if (!locked && r.payment_reference) {
-        const send = el("button", "btn pass", "Send refund " + nairaFull(r.amount)); send.type = "button";
+        const send = el("button", "btn pass", "Send refund " + nairaFull(r.refund_due_amount)); send.type = "button";
         send.addEventListener("click", async () => {
-          if (!confirm("Send " + nairaFull(r.amount) + " back to the buyer through Paystack?")) return;
+          if (!confirm("Send " + nairaFull(r.refund_due_amount) + " back to the buyer through Paystack?")) return;
           send.disabled = true; send.textContent = "Sending...";
           const { data, error } = await sb.functions.invoke("refund-item", { body: { report_id: r.report_id } });
           if (error || !data || !data.refunded) {
             let msg = "Could not send the refund.";
             try { if (error && error.context) { const j = await error.context.json(); if (j && j.error) msg = j.error; } } catch (e) {}
             if (msg === "no payment reference") msg = "This order has no Paystack payment on record, so there is nothing to refund.";
-            toast(msg, true);
-            loadReports();
-            return;
+            toast(msg, true); loadReports(); return;
           }
-          toast("Refund sent.");
-          loadReports();
+          toast("Refund sent."); loadReports();
         });
         acts.appendChild(send);
       }
       const manual = el("button", "btn go", locked ? "I checked, it was sent" : "I refunded it myself"); manual.type = "button";
-      manual.addEventListener("click", async () => {
-        if (!confirm("Mark this as refunded? Only do this if the money really went back to the buyer.")) return;
-        const { data, error } = await sb.rpc("admin_mark_refunded", { p_report_id: r.report_id });
-        if (error || data !== "ok") { toast("Could not update.", true); return; }
-        toast("Marked as refunded."); loadReports();
-      });
+      manual.addEventListener("click", () => run(manual, "admin_mark_refunded", { p_report_id: r.report_id },
+        "Mark this as refunded? Only do this if the money really went back to the buyer.", "Marked as refunded."));
       acts.appendChild(manual);
-      wrap.appendChild(acts);
+    } else if (r.status === "refunded" && r.refund_amount) {
+      wrap.appendChild(el("p", "hubmeta", "Refunded " + nairaFull(r.refund_amount) + "."));
     }
-    if (r.status === "open") {
-      const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300;
-      input.placeholder = "Note (optional)";
-      input.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box";
-      wrap.appendChild(input);
-      const actions = el("div", "actions");
-      async function decide(decision, btn) {
-        const q = decision === "refund"
-          ? "Refund the buyer for this item? The seller will not be paid for it."
-          : "Dismiss this report? The seller will be paid for this item.";
-        if (!confirm(q)) return;
-        btn.disabled = true;
-        const { data, error } = await sb.rpc("admin_resolve_report", { p_report_id: r.report_id, p_decision: decision, p_note: input.value });
-        if (error || data !== "ok") { toast("Could not update: " + (error ? error.message : data), true); btn.disabled = false; return; }
-        toast("Done.");
-        loadReports();
-      }
-      const ref = el("button", "btn reject", "Refund buyer"); ref.type = "button";
-      const dis = el("button", "btn go", "Dismiss"); dis.type = "button";
-      ref.addEventListener("click", () => decide("refund", ref));
-      dis.addEventListener("click", () => decide("dismiss", dis));
-      actions.appendChild(ref); actions.appendChild(dis);
-      wrap.appendChild(actions);
-    }
+    if (acts.children.length) wrap.appendChild(acts);
     return wrap;
   }
 
