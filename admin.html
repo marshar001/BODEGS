@@ -651,7 +651,7 @@
 
   // ---------- Menu, attention bar, Home and Costs ----------
   const LIMITS = { db: 500 * 1048576, storage: 1024 * 1048576, accounts: 50000 };
-  function naira(n) {
+  function nairaShort(n) {
     n = Number(n) || 0; const a = Math.abs(n);
     if (a >= 1e6) return "₦" + (n / 1e6).toFixed(a >= 1e7 ? 0 : 1) + "M";
     if (a >= 1e4) return "₦" + Math.round(n / 1e3) + "k";
@@ -715,7 +715,7 @@
     for (let i = 0; i <= 4; i++) {
       const y = T + (H - T - B) * (1 - i / 4);
       svg.appendChild(sv("line", { x1: L, x2: W - R, y1: y, y2: y, stroke: "#e5e7eb", "stroke-width": 1 }));
-      svg.appendChild(sv("text", { x: L - 5, y: y + 4, "text-anchor": "end", "font-size": 10, fill: "#6b7280" }, naira(max * i / 4)));
+      svg.appendChild(sv("text", { x: L - 5, y: y + 4, "text-anchor": "end", "font-size": 10, fill: "#6b7280" }, nairaShort(max * i / 4)));
     }
     const bw = (W - L - R) / months.length;
     months.forEach((m, i) => {
