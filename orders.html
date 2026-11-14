@@ -1002,11 +1002,22 @@
 
     // One label per order: unpaid orders stay "pending"; once paid, a new order
     // reads "Paid" and moves on to processing/shipped/delivered as the seller updates it.
+    function orderReturn(order) {
+      const lines = Array.isArray(order.products) ? order.products : [];
+      const reps = lines.map(p => reportStatus[String(p.id)]).filter(Boolean);
+      const active = reps.filter(r => ["open", "return_approved", "return_sent", "refund_due"].includes(r.status));
+      const refunded = reps.filter(r => r.status === "refunded");
+      return { reps, active, refunded, allRefunded: lines.length > 0 && refunded.length === lines.length };
+    }
     function orderStage(order) {
       const base = normaliseStatus(order.status);
       if (base === "cancelled") return { key: "cancelled", label: "Cancelled" };
       if (!order.paid) return { key: "pending", label: "Pending" };
       const lines = Array.isArray(order.products) ? order.products : [];
+      const ret = orderReturn(order);
+      if (ret.allRefunded) return { key: "refunded", label: "Refunded", css: "paid" };
+      if (ret.active.length) return { key: "returning", label: "Return in progress", css: "paid" };
+      if (ret.refunded.length) return { key: "delivered", label: "Partly refunded" };
       if (lines.length && lines.every(p => p.delivered)) return { key: "delivered", label: "Delivered" };
       if (lines.length && lines.some(p => p.dispatched)) return { key: "shipped", label: "On its way" };
       if (lines.length && lines.some(p => p.atHub)) return { key: "processing", label: "At our hub", css: "paid" };
@@ -1243,15 +1254,16 @@
       const money = (n) => formatMoney(Number(n) || 0);
       const price = (Number(p.price) || 0) * (Number(p.quantity) || 1);
       const refund = price * (1 - (Number(r.return_fee_percent) || 0) / 100);
+      const who = r.fault === "seller" ? " The seller covers the return cost." : r.fault === "carrier" ? " Our delivery partner covers the damage." : "";
       if (r.status === "open") return "Problem reported. We are reviewing it.";
       if (r.status === "return_approved") {
         const fee = Number(r.return_fee_percent) || 0;
         return "Return approved. Send the item to our hub" + (hubAddress ? " (" + hubAddress + ")" : "") + (r.return_deadline ? " by " + fmtDay(r.return_deadline) : "") + ", then tap the button below. " +
-          (fee > 0 ? "A " + fee + "% return fee applies, so your refund will be " + money(refund) + "." : "No return fee applies. Your refund will be " + money(refund) + ".");
+          (fee > 0 ? "A " + fee + "% return fee applies to cover transport, so your refund will be " + money(refund) + "." : "No return fee applies, and you will be refunded in full (" + money(refund) + ")." + who);
       }
       if (r.status === "return_sent") return "Waiting for our hub to receive your return. Your refund will be " + money(refund) + ".";
       if (r.status === "refund_due") return "We received your return. Your refund of " + money(refund) + " is on its way.";
-      if (r.status === "refunded") return "Refunded " + money(r.refund_amount || refund) + ".";
+      if (r.status === "refunded") return "Refunded " + money(r.refund_amount || refund) + ". We are sorry for the inconvenience.";
       if (r.status === "dismissed") return "Report reviewed. No return or refund was approved.";
       if (r.status === "expired") return "The return period ended, so no refund is due.";
       return "";
@@ -1274,7 +1286,9 @@
       const cancelled = stage.key === "cancelled";
       const allShipped = order.products.length > 0 && order.products.every(p => p.shipped);
       const shipped = status === "shipped" || status === "delivered" || allShipped;
-      const delivered = status === "delivered" || stage.key === "delivered";
+      const ret = orderReturn(order);
+      const hasReturn = ret.reps.length > 0;
+      const delivered = !hasReturn && (status === "delivered" || stage.key === "delivered");
 
       const when = value => {
         if (!value) return "";
@@ -1288,6 +1302,19 @@
       const sentCount = order.products.filter(p => p.shipped).length;
       const deliveredTimes = order.products.map(p => p.deliveredAt).filter(Boolean).sort();
       const events = [];
+      const money = n => formatMoney(Number(n) || 0);
+      order.products.forEach(p => {
+        const r = reportStatus[String(p.id)];
+        if (!r) return;
+        const nm = p.name || "Item";
+        const list = [];
+        if (r.status === "refunded") list.push(["Refunded", nm + ": " + money(r.refund_amount) + " has been refunded to you. We are sorry for the inconvenience.", r.refunded_at]);
+        if (r.return_received_at) list.push(["Return received", nm + ": we received your item back at our hub.", r.return_received_at]);
+        if (r.return_sent_at) list.push(["You sent the item back", nm, r.return_sent_at]);
+        if (r.approved_at) list.push(["Return approved", nm + ": " + (Number(r.return_fee_percent) > 0 ? "a " + r.return_fee_percent + "% return fee applies for transport." : "no return fee applies." + (r.fault === "seller" ? " The seller covers the return cost." : r.fault === "carrier" ? " Our delivery partner covers the damage." : "")), r.approved_at]);
+        list.push(["Problem reported", nm + (r.status === "dismissed" ? ": reviewed, no return was approved." : r.status === "open" ? ": we are reviewing it." : ""), r.created_at]);
+        list.forEach(e => events.push([e[0], e[1], when(e[2])]));
+      });
       if (delivered) events.push(["Delivered", "You confirmed that your order arrived", when(deliveredTimes[deliveredTimes.length - 1])]);
       if (onTheWay) events.push(["On its way to you", order.products.every(p => p.dispatched || p.delivered) ? "BODEGS has sent your order" : "BODEGS has sent part of your order", when(dispatchedTimes[dispatchedTimes.length - 1])]);
       if (atHubCount) events.push(["At our hub", atHubCount + " of " + order.products.length + " item(s) received and checked", when(hubTimes[hubTimes.length - 1])]);
@@ -1297,12 +1324,14 @@
       events.push(["Order placed", order.paid || cancelled ? "" : "Waiting for your payment", when(order.createdAt)]);
 
       const bannerText = cancelled ? "Cancelled"
+        : ret.allRefunded ? "Refunded · we are sorry for the inconvenience"
+        : ret.active.length ? "Return in progress"
         : delivered ? "Delivered"
         : onTheWay ? "On its way to you"
         : atHubCount ? "At our hub · getting your order ready"
         : order.paid ? "Paid · preparing your order"
         : "Awaiting payment";
-      const bannerClass = cancelled ? "cancelled" : (order.paid ? "good" : "wait");
+      const bannerClass = cancelled ? "cancelled" : ret.active.length ? "wait" : (order.paid ? "good" : "wait");
 
       const steps = `
         <div class="od-banner dk-skip ${bannerClass}">
@@ -1638,7 +1667,7 @@
 
       reportStatus = {};
       try {
-        const rep = await sb.from("item_reports").select("id, item_id, status, return_fee_percent, return_deadline, refund_amount");
+        const rep = await sb.from("item_reports").select("id, item_id, status, fault, return_fee_percent, return_deadline, refund_amount, created_at, approved_at, return_sent_at, return_received_at, refunded_at");
         if (!rep.error && rep.data) rep.data.forEach(r => { reportStatus[String(r.item_id)] = r; });
         if (rep.data && rep.data.some(r => r.status === "return_approved")) {
           const h = await sb.rpc("get_hub_address");

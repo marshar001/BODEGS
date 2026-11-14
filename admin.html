@@ -176,7 +176,7 @@
       <button type="button" class="chip on" data-f="all">All</button>
       <button type="button" class="chip" data-f="receive">Waiting for items</button>
       <button type="button" class="chip" data-f="send">Ready to send</button>
-      <button type="button" class="chip" data-f="wait">With buyer</button>
+      <button type="button" class="chip" data-f="wait">In transit</button>
     </div>
   </div>
 </header>
@@ -445,7 +445,10 @@
 
   function itemState(r) {
     if (r.delivered_at) return ["Delivered", "ok"];
-    if (r.dispatched_at) return ["Sent to buyer", "ok"];
+    if (r.dispatched_at) {
+      const days = Math.floor((Date.now() - new Date(r.dispatched_at).getTime()) / 86400000);
+      return ["In transit · sent " + (days <= 0 ? "today" : days + " day" + (days === 1 ? "" : "s") + " ago"), days >= 3 ? "bad" : "wait"];
+    }
     if (r.hub_result) return ["At hub, checked", "ok"];
     if (r.hub_received_at) return ["At hub", ""];
     if (r.shipped_at) return ["On its way to hub", "wait"];
@@ -465,6 +468,7 @@
       o.toReceive = o.items.filter((i) => i.shipped_at && !i.hub_received_at && !i.delivered_at).length;
       o.notSent = o.items.filter((i) => !i.shipped_at).length;
       o.sent = o.items.filter((i) => i.dispatched_at || i.delivered_at).length;
+      o.inTransit = o.items.filter((i) => i.dispatched_at && !i.delivered_at).length;
       o.group = o.atHub ? "send" : o.toReceive ? "receive" : open.length && open.every((i) => i.dispatched_at) ? "wait" : "receive";
       return o;
     });
@@ -549,7 +553,8 @@
   function renderHub() {
     const q = $("hubSearch").value.trim().toLowerCase().replace(/^#/, "");
     const orders = groupOrders(hubData).filter((o) => {
-      if (hubFilter !== "all" && o.group !== hubFilter) return false;
+      if (hubFilter === "wait") { if (!o.inTransit) return false; }
+      else if (hubFilter !== "all" && o.group !== hubFilter) return false;
       if (!q) return true;
       return o.items.some((r) => [r.order_id, r.item_id, r.product_name, r.store, r.buyer_name, r.buyer_phone, r.delivery_address]
         .some((v) => String(v || "").toLowerCase().includes(q)));
@@ -632,10 +637,11 @@
     if (r.details) wrap.appendChild(el("p", "hubmeta", "“" + r.details + "”"));
     if (r.admin_note) wrap.appendChild(el("p", "hubmeta", "Your note: " + r.admin_note));
     const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-    if (r.status !== "open" && r.status !== "dismissed" && r.return_fee_percent !== null && r.return_fee_percent !== undefined) {
-      wrap.appendChild(el("p", "hubmeta", Number(r.return_fee_percent) > 0
-        ? "Return fee " + r.return_fee_percent + "% kept. Refund will be " + nairaFull(r.refund_due_amount) + "."
-        : "Fee waived. Refund will be " + nairaFull(r.refund_due_amount) + "."));
+    if (r.fault && r.status !== "open" && r.status !== "dismissed") {
+      const who = r.fault === "buyer" ? "Buyer pays 15%. Refund " + nairaFull(r.refund_due_amount) + "."
+        : r.fault === "seller" ? "Seller's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Seller owes " + nairaFull(r.seller_charge) + " (15%) for transport."
+        : "Delivery company's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Claim it from the delivery company.";
+      wrap.appendChild(el("p", "hubmeta", "Who pays: " + who));
     }
     const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300; input.placeholder = "Note (optional)";
     input.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box";
@@ -651,23 +657,35 @@
     const acts = el("div", "actions");
     if (r.status === "open") {
       wrap.appendChild(input);
-      const lab = el("label", "hubmeta");
-      lab.style.cssText = "display:flex;gap:8px;align-items:center;margin-top:8px";
-      const cb = el("input"); cb.type = "checkbox";
-      lab.appendChild(cb); lab.appendChild(document.createTextNode("Waive the 15% fee (damaged or wrong item, not the buyer's fault)"));
-      wrap.appendChild(lab);
+      const sel = el("select", "hubnote");
+      sel.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box;padding:11px 12px;font:inherit;font-size:14px";
+      [["buyer", "Buyer's reason (size, changed mind): buyer pays 15%"],
+       ["seller", "Seller's fault (wrong or bad item): buyer refunded in full, seller pays 15%"],
+       ["carrier", "Delivery company's fault (damaged on delivery): buyer refunded in full, delivery company pays"]]
+        .forEach((o) => { const op = el("option", "", o[1]); op.value = o[0]; sel.appendChild(op); });
+      wrap.appendChild(el("p", "hubmeta", "Who pays for this return?"));
+      wrap.appendChild(sel);
       const ok = el("button", "btn go", "Approve return"); ok.type = "button";
       const no = el("button", "btn reject", "Dismiss"); no.type = "button";
-      ok.addEventListener("click", () => run(ok, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "approve", p_note: input.value, p_waive_fee: cb.checked },
-        "Approve this return" + (cb.checked ? " with the fee waived" : " with a 15% fee") + "? The buyer then has 7 days to send the item to the hub.", "Return approved."));
-      no.addEventListener("click", () => run(no, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "dismiss", p_note: input.value, p_waive_fee: false },
+      const WHO = {
+        buyer: "The BUYER pays 15% (" + nairaFull(r.amount * 0.15) + ") for transport. Refund will be " + nairaFull(r.amount * 0.85) + ".",
+        seller: "The SELLER pays 15% (" + nairaFull(r.amount * 0.15) + ") for transport and logistics. The buyer is refunded in full (" + nairaFull(r.amount) + ").",
+        carrier: "The DELIVERY COMPANY is at fault. The buyer is refunded in full (" + nairaFull(r.amount) + ") and BODEGS claims it back from the delivery company."
+      };
+      ok.addEventListener("click", () => run(ok, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "approve", p_note: input.value, p_fault: sel.value },
+        "Please confirm who pays.\n\n" + WHO[sel.value] + "\n\nThe buyer then has 7 days to send the item to the hub.", "Return approved."));
+      no.addEventListener("click", () => run(no, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "dismiss", p_note: input.value, p_fault: null },
         "Dismiss this report? The buyer keeps the item and the seller will be paid.", "Dismissed."));
       acts.appendChild(ok); acts.appendChild(no);
     } else if (r.status === "return_approved" || r.status === "return_sent") {
-      wrap.appendChild(el("p", "hubmeta", (r.status === "return_sent" ? "Buyer says it was sent back" + (r.return_sent_at ? " on " + fmtDate(r.return_sent_at) : "") + ". " : "") +
+      wrap.appendChild(el("p", "hubmeta", (r.status === "return_sent" ? "Buyer says it was sent back" + (r.return_sent_at ? " on " + fmtDate(r.return_sent_at) : "") + ". " : "Waiting for the buyer. ") +
         "The buyer must get it to the hub by " + (r.return_deadline ? fmtDate(r.return_deadline) : "the deadline") + "."));
       wrap.appendChild(input);
       const got = el("button", "btn pass", "Return received at hub"); got.type = "button";
+      if (r.status === "return_approved") {
+        got.disabled = true; got.style.opacity = ".45";
+        wrap.appendChild(el("p", "hubmeta", "This unlocks when the buyer taps \"I have sent it back\"."));
+      }
       got.addEventListener("click", () => run(got, "admin_mark_return_received", { p_report_id: r.report_id, p_note: input.value },
         "Mark the returned item as received at the hub? This unlocks the refund.", "Return received. You can now send the refund."));
       acts.appendChild(got);
@@ -753,7 +771,22 @@
       b.type = "button"; b.addEventListener("click", () => goTo(target));
       bar.appendChild(b);
     };
+    let transit = 0;
+    try {
+      const q = await sb.rpc("admin_hub_queue");
+      if (!q.error && q.data) transit = q.data.filter((i) => i.dispatched_at && !i.delivered_at).length;
+    } catch (e) {}
+    data.in_transit = transit;
     add(Number(data.need_hub), "in the hub", "hub");
+    if (transit) {
+      const t = el("button", "soft", transit + " in transit to buyers"); t.type = "button";
+      t.addEventListener("click", () => {
+        hubFilter = "wait";
+        document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.f === "wait"));
+        goTo("hub");
+      });
+      bar.appendChild(t);
+    }
     add(Number(data.need_apps), "to approve", "pending");
     add(Number(data.need_reports), "problem report(s)", "reports");
     add(Number(data.need_refunds), "refund(s) to pay", "reports", true);
@@ -832,7 +865,7 @@
     tiles.appendChild(tile([{ n: d.sellers_7d, l: "New sellers · 7 days" }, { n: d.sellers_30d, l: "New sellers · 30 days" }]));
     tiles.appendChild(tile([{ n: d.sellers_total, l: "Total sellers" }]));
     tiles.appendChild(tile([{ n: nairaFull(d.sales_month), l: "Sales this month · " + d.orders_month + " orders" }, { n: nairaFull(d.sales_all), l: "Sales all time · " + d.orders_paid + " orders" }]));
-    tiles.appendChild(tile([{ n: d.orders_paid, l: "Paid orders (all time)" }, { n: d.products, l: "Products listed" }]));
+    tiles.appendChild(tile([{ n: d.in_transit || 0, l: "Items in transit to buyers" }, { n: d.orders_paid, l: "Paid orders (all time)" }, { n: d.products, l: "Products listed" }]));
 
     // Chart card: swipe between revenue and expenses
     const months = d.months || [];
