@@ -632,6 +632,7 @@
   /* money: BODEGS pays sellers weekly for items the buyer confirmed as received, minus commission */
   let commissionPct = 10;
   let payouts = [];
+  let returnCosts = [];
   const rnd = (n) => Math.round(n);
   const netOf = (o) => rnd(lineTotal(o) * (1 - commissionPct / 100));
   const liveLines = () => ok() ? orders.filter((o) => o.order_status !== "cancelled") : [];
@@ -651,9 +652,14 @@
   async function loadMoney() {
     try { const r = await sb.rpc("get_commission"); if (r && !r.error && r.data != null) commissionPct = Number(r.data); } catch (e) {}
     try {
-      const r = await sb.from("seller_payouts").select("id, amount, gross, commission, status, failure, created_at").order("created_at", { ascending: false });
+      let r = await sb.from("seller_payouts").select("id, amount, gross, commission, charges_deducted, status, failure, created_at").order("created_at", { ascending: false });
+      if (r && r.error) r = await sb.from("seller_payouts").select("id, amount, gross, commission, status, failure, created_at").order("created_at", { ascending: false });
       payouts = (r && r.data) || [];
     } catch (e) { payouts = []; }
+    try {
+      const c = await sb.rpc("seller_return_charges");
+      returnCosts = c && !c.error && Array.isArray(c.data) ? c.data : [];
+    } catch (e) { returnCosts = []; }
   }
 
   function fillMoney(box) {
@@ -670,6 +676,12 @@
       trio.appendChild(d);
     });
     box.appendChild(trio);
+    const owed = returnCosts.filter((x) => !x.settled).reduce((t, x) => t + Number(x.amount), 0);
+    if (owed > 0) {
+      const n = el("p", "", "Return costs of " + naira(owed) + " will be taken from your next payout.");
+      n.style.cssText = "margin:10px 0 0;font-size:12.5px;line-height:1.4;color:rgba(255,255,255,.85)";
+      box.appendChild(n);
+    }
   }
 
   function txRow(title, sub, amount, cls) {
@@ -803,10 +815,15 @@
         txRow(o.product_name, (o.shipped_at ? "Shipped " + shortDate(o.shipped_at) + ", waiting for the buyer to confirm" : "Waiting for you to ship") + " · " + ref(o), naira(netOf(o)), "wait"));
     } else if (payFilter === "payouts") {
       rows = payouts.filter((x) => x.status !== "failed").map((x) =>
-        txRow("Weekly payout", shortDate(x.created_at) + " · " + (x.status === "paid" ? "Sent to your bank" : "On its way") + " · " + naira(x.gross) + " sales − " + naira(x.commission) + " commission", naira(x.amount), x.status === "paid" ? "in" : "wait"));
+        txRow("Weekly payout", shortDate(x.created_at) + " · " + (x.status === "paid" ? "Sent to your bank" : "On its way") + " · " + naira(x.gross) + " sales − " + naira(x.commission) + " commission" + (Number(x.charges_deducted) > 0 ? " − " + naira(x.charges_deducted) + " return costs" : ""), naira(x.amount), x.status === "paid" ? "in" : "wait"));
     } else {
       rows = payouts.filter((x) => x.status === "failed").map((x) =>
         txRow("Payout not sent", shortDate(x.created_at) + " · it will be tried again", naira(x.amount), "bad"));
+    }
+    if (payFilter === "earnings") {
+      const costRows = returnCosts.map((c) => txRow("Return cost: " + c.product_name,
+        shortDate(c.created_at) + " · " + ref(c) + " · " + (c.settled ? "Taken from a payout" : "Will be taken from your next payout"), "−" + naira(c.amount), "bad"));
+      rows = costRows.concat(rows);
     }
     if (rows.length) { rows.forEach((r) => list.appendChild(r)); return; }
     const empty = {

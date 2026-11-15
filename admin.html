@@ -689,7 +689,8 @@
     const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
     if (r.fault && (r.status === "refund_due" || r.status === "refunded")) {
       const who = r.fault === "buyer" ? "Buyer pays 15%. Refund " + nairaFull(r.refund_due_amount) + "."
-        : r.fault === "seller" ? "Seller's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Seller owes " + nairaFull(r.seller_charge) + " (15%) for transport."
+        : r.fault === "seller" ? "Seller's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Seller owes " + nairaFull(r.seller_charge) + " (15%) for transport. " +
+          (r.seller_charge_settled_at ? "Taken from the seller's payout on " + fmtDate(r.seller_charge_settled_at) + "." : "It will be taken from the seller's next weekly payout.")
         : "Delivery company's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Claim it from the delivery company.";
       wrap.appendChild(el("p", "hubmeta", "Who pays: " + who));
     }
