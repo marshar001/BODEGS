@@ -158,6 +158,11 @@
       color: #873b32;
     }
 
+    .order-status.refund {
+      background: #fbe9d6;
+      color: #8a4a12;
+    }
+
     .order-products {
       padding: 14px 0;
     }
@@ -652,6 +657,7 @@
     .od-banner.good { background: #d9ecdf; color: #1f5b34; }
     .od-banner.wait { background: #f5e5bd; color: #795516; }
     .od-banner.cancelled { background: #f3d8d5; color: #873b32; }
+    .od-banner.refund { background: #fbe9d6; color: #8a4a12; }
 
     .od-banner-dot {
       width: 10px;
@@ -697,6 +703,7 @@
 
     .od-event:last-child::after { display: none; }
     .od-event.latest::before { background: #2f8f5b; }
+    .od-event.latest.refund::before { background: #d98f45; }
 
     .od-event small {
       display: block;
@@ -716,7 +723,10 @@
     [data-theme="dark"] .od-banner.good { background: #1f3a2b !important; color: #8fd1a9 !important; }
     [data-theme="dark"] .od-banner.wait { background: #3b3320 !important; color: #e0bd6a !important; }
     [data-theme="dark"] .od-banner.cancelled { background: #3b2523 !important; color: #e19b93 !important; }
+    [data-theme="dark"] .od-banner.refund { background: #3d2b1b !important; color: #e8b27a !important; }
+    [data-theme="dark"] .order-status.refund { background: #3d2b1b !important; color: #e8b27a !important; }
     [data-theme="dark"] .od-event.latest::before { background: #7fbf9f !important; }
+    [data-theme="dark"] .od-event.latest.refund::before { background: #e3a566 !important; }
 
     .od-cancel {
       display: block;
@@ -1015,9 +1025,9 @@
       if (!order.paid) return { key: "pending", label: "Pending" };
       const lines = Array.isArray(order.products) ? order.products : [];
       const ret = orderReturn(order);
-      if (ret.allRefunded) return { key: "refunded", label: "Refunded", css: "paid" };
-      if (ret.active.length) return { key: "returning", label: "Return in progress", css: "paid" };
-      if (ret.refunded.length) return { key: "delivered", label: "Partly refunded" };
+      if (ret.allRefunded) return { key: "refunded", label: "Refunded", css: "refund" };
+      if (ret.active.length) return { key: "returning", label: "Return in progress", css: "refund" };
+      if (ret.refunded.length) return { key: "delivered", label: "Partly refunded", css: "refund" };
       if (lines.length && lines.every(p => p.delivered)) return { key: "delivered", label: "Delivered" };
       if (lines.length && lines.some(p => p.dispatched)) return { key: "shipped", label: "On its way" };
       if (lines.length && lines.some(p => p.atHub)) return { key: "processing", label: "At our hub", css: "paid" };
@@ -1187,7 +1197,7 @@
                 </div>
               </div>
 
-              <span class="order-status ${stage.css || status}">
+              <span class="order-status ${stage.css || status}${stage.css === "refund" ? " dk-skip" : ""}">
                 ${stage.label}
               </span>
             </div>
@@ -1254,15 +1264,14 @@
       const money = (n) => formatMoney(Number(n) || 0);
       const price = (Number(p.price) || 0) * (Number(p.quantity) || 1);
       const refund = price * (1 - (Number(r.return_fee_percent) || 0) / 100);
-      const who = r.fault === "seller" ? " The seller covers the return cost." : r.fault === "carrier" ? " Our delivery partner covers the damage." : "";
+      const fee = Number(r.return_fee_percent) || 0;
       if (r.status === "open") return "Problem reported. We are reviewing it.";
       if (r.status === "return_approved") {
-        const fee = Number(r.return_fee_percent) || 0;
         return "Return approved. Send the item to our hub" + (hubAddress ? " (" + hubAddress + ")" : "") + (r.return_deadline ? " by " + fmtDay(r.return_deadline) : "") + ", then tap the button below. " +
-          (fee > 0 ? "A " + fee + "% return fee applies to cover transport, so your refund will be " + money(refund) + "." : "No return fee applies, and you will be refunded in full (" + money(refund) + ")." + who);
+          "When we have received and checked it, we confirm your refund. If the item was damaged or wrong and it was not your fault, you are refunded in full. Otherwise a 15% return fee covers transport.";
       }
-      if (r.status === "return_sent") return "Waiting for our hub to receive your return. Your refund will be " + money(refund) + ".";
-      if (r.status === "refund_due") return "We received your return. Your refund of " + money(refund) + " is on its way.";
+      if (r.status === "return_sent") return "Waiting for our hub to receive your return. We will confirm your refund once we have checked it.";
+      if (r.status === "refund_due") return "We received your return. Your refund of " + money(refund) + " is on its way." + (fee > 0 ? " A " + fee + "% return fee (" + money(price * fee / 100) + ") was kept for transport." : " No return fee applies.");
       if (r.status === "refunded") return "Refunded " + money(r.refund_amount || refund) + ". We are sorry for the inconvenience.";
       if (r.status === "dismissed") return "Report reviewed. No return or refund was approved.";
       if (r.status === "expired") return "The return period ended, so no refund is due.";
@@ -1309,9 +1318,9 @@
         const nm = p.name || "Item";
         const list = [];
         if (r.status === "refunded") list.push(["Refunded", nm + ": " + money(r.refund_amount) + " has been refunded to you. We are sorry for the inconvenience.", r.refunded_at]);
-        if (r.return_received_at) list.push(["Return received", nm + ": we received your item back at our hub.", r.return_received_at]);
+        if (r.return_received_at) list.push(["Return received", nm + ": we received your item back at our hub." + (r.fault ? (Number(r.return_fee_percent) > 0 ? " A " + r.return_fee_percent + "% return fee for transport applies." : " No return fee applies.") : ""), r.return_received_at]);
         if (r.return_sent_at) list.push(["You sent the item back", nm, r.return_sent_at]);
-        if (r.approved_at) list.push(["Return approved", nm + ": " + (Number(r.return_fee_percent) > 0 ? "a " + r.return_fee_percent + "% return fee applies for transport." : "no return fee applies." + (r.fault === "seller" ? " The seller covers the return cost." : r.fault === "carrier" ? " Our delivery partner covers the damage." : "")), r.approved_at]);
+        if (r.approved_at) list.push(["Return approved", nm + ": send the item to our hub. When we have received and checked it, we confirm your refund.", r.approved_at]);
         list.push(["Problem reported", nm + (r.status === "dismissed" ? ": reviewed, no return was approved." : r.status === "open" ? ": we are reviewing it." : ""), r.created_at]);
         list.forEach(e => events.push([e[0], e[1], when(e[2])]));
       });
@@ -1326,12 +1335,14 @@
       const bannerText = cancelled ? "Cancelled"
         : ret.allRefunded ? "Refunded · we are sorry for the inconvenience"
         : ret.active.length ? "Return in progress"
+        : ret.refunded.length ? "Some items refunded · we are sorry for the inconvenience"
         : delivered ? "Delivered"
         : onTheWay ? "On its way to you"
         : atHubCount ? "At our hub · getting your order ready"
         : order.paid ? "Paid · preparing your order"
         : "Awaiting payment";
-      const bannerClass = cancelled ? "cancelled" : ret.active.length ? "wait" : (order.paid ? "good" : "wait");
+      const bannerClass = cancelled ? "cancelled" : (ret.allRefunded || ret.active.length || ret.refunded.length) ? "refund" : (order.paid ? "good" : "wait");
+      const RET_EVENTS = ["Refunded", "Return received", "You sent the item back", "Return approved", "Problem reported"];
 
       const steps = `
         <div class="od-banner dk-skip ${bannerClass}">
@@ -1340,7 +1351,7 @@
         <div class="od-section od-updates">
           <h3>ORDER UPDATES</h3>
           ${events.map((e, i) => `
-            <div class="od-event ${i === 0 ? "latest" : ""}">
+            <div class="od-event ${i === 0 ? "latest" : ""} ${i === 0 && RET_EVENTS.includes(e[0]) ? "refund" : ""}">
               ${e[2] ? `<small>${escapeHTML(e[2])}</small>` : ""}
               <strong>${escapeHTML(e[0])}</strong>
               ${e[1] ? `<span>${escapeHTML(e[1])}</span>` : ""}
@@ -1372,7 +1383,7 @@
             <h2>Order #${escapeHTML(order.id)}</h2>
             <div class="od-sub">${formatDate(order.createdAt)}</div>
           </div>
-          <span class="order-status ${stage.css || stage.key}">${stage.label}</span>
+          <span class="order-status ${stage.css || stage.key}${stage.css === "refund" ? " dk-skip" : ""}">${stage.label}</span>
         </div>
         ${steps}
         <div class="od-section"><h3>ITEMS</h3>${items}</div>

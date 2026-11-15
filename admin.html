@@ -103,6 +103,11 @@
     .stage { display: inline-block; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; background: #e0e7ff; color: #3730a3; }
     .stage.bad { background: #fee2e2; color: var(--red); }
     .stage.ok { background: #dcfce7; color: var(--green); }
+    .stage.refund { background: #fdebd8; color: #8f4a0e; }
+    .btn.refund { background: #b8691b; color: #fff; }
+    #attn button.refundpill { background: #fdebd8; color: #8f4a0e; }
+    .evid { margin-top: 8px; padding: 8px 10px; background: #f3f4f6; border-radius: 10px; font-size: 12.5px; line-height: 1.5; }
+    .courierbtns { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px 54px; }
     .hubnote { width: 100%; margin-top: 12px; padding: 11px 12px; font-size: 14px; font-family: inherit; border: 1.5px solid var(--line); border-radius: 10px; }
     .btn.pass { background: var(--green); color: #fff; }
     .btn.go { background: var(--ink); color: #fff; }
@@ -446,6 +451,8 @@
   function itemState(r) {
     if (r.delivered_at) return ["Delivered", "ok"];
     if (r.dispatched_at) {
+      if (r.courier_condition === "damaged") return ["Courier reports damage", "bad"];
+      if (r.courier_condition === "ok") return ["Courier delivered, no damage", "ok"];
       const days = Math.floor((Date.now() - new Date(r.dispatched_at).getTime()) / 86400000);
       return ["In transit · sent " + (days <= 0 ? "today" : days + " day" + (days === 1 ? "" : "s") + " ago"), days >= 3 ? "bad" : "wait"];
     }
@@ -468,7 +475,7 @@
       o.toReceive = o.items.filter((i) => i.shipped_at && !i.hub_received_at && !i.delivered_at).length;
       o.notSent = o.items.filter((i) => !i.shipped_at).length;
       o.sent = o.items.filter((i) => i.dispatched_at || i.delivered_at).length;
-      o.inTransit = o.items.filter((i) => i.dispatched_at && !i.delivered_at).length;
+      o.inTransit = o.items.filter((i) => i.dispatched_at && !i.delivered_at && !i.courier_confirmed_at).length;
       o.group = o.atHub ? "send" : o.toReceive ? "receive" : open.length && open.every((i) => i.dispatched_at) ? "wait" : "receive";
       return o;
     });
@@ -524,6 +531,32 @@
       }
       itemsBox.appendChild(row);
       if (r.hub_note) itemsBox.appendChild(el("p", "sub2 notel", "Note: " + r.hub_note));
+      const dShort = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      if (r.courier_confirmed_at) {
+        itemsBox.appendChild(el("p", "sub2 notel", "Courier " + (r.courier_condition === "damaged" ? "reported damage" : "confirmed delivery, no damage") +
+          " · " + dShort(r.courier_confirmed_at) + (r.courier_note ? ": " + r.courier_note : "")));
+      } else if (r.dispatched_at && !r.delivered_at) {
+        const cb = el("div", "courierbtns");
+        const okb = el("button", "btn go small", "Courier delivered, no damage"); okb.type = "button";
+        const badb = el("button", "btn reject small", "Courier reports damage"); badb.type = "button";
+        async function courierSet(cond, btn) {
+          let note = "";
+          if (cond === "damaged") {
+            const t = prompt("What damage did the courier report? (optional)", "");
+            if (t === null) return;
+            note = t.trim();
+          } else if (!confirm("The courier confirmed this item was handed over with no damage?")) return;
+          okb.disabled = badb.disabled = true;
+          const res = await call("admin_courier_confirm", { p_item_id: r.item_id, p_condition: cond, p_note: note }, null);
+          if (res !== "ok" && res !== "already_done") { if (res !== false) toast("Could not update: " + res, true); okb.disabled = badb.disabled = false; return; }
+          toast("Courier confirmation saved.");
+          loadHub();
+        }
+        okb.addEventListener("click", () => courierSet("ok", okb));
+        badb.addEventListener("click", () => courierSet("damaged", badb));
+        cb.appendChild(okb); cb.appendChild(badb);
+        itemsBox.appendChild(cb);
+      }
       if (canReceive) {
         const nb = el("button", "linkbtn", "+ add a note");
         nb.type = "button";
@@ -609,13 +642,30 @@
   new MutationObserver(compactCards).observe($("list"), { childList: true });
 
   // ---------- Reports: buyer problem reports ----------
+  const FAULT_NAME = { buyer: "the buyer's reason (buyer pays 15%)", seller: "the seller's fault", carrier: "the delivery company's fault" };
+  function suggestFault(r) {
+    const reason = String(r.reason || "");
+    if (/damag/i.test(reason)) {
+      if (r.courier_condition === "damaged") return ["carrier", "the courier itself reported damage"];
+      if (!r.courier_condition) return ["carrier", "there is no courier confirmation, so the delivery company cannot show it handed over the item safely"];
+      return ["buyer", "the hub check and the courier both recorded the item as fine"];
+    }
+    if (/wrong item|not as described/i.test(reason)) return ["seller", "the buyer says it is not what was ordered"];
+    return ["buyer", "this looks like a change of mind or size"];
+  }
+  function whoText(r, f) {
+    const fee = nairaFull(r.amount * 0.15);
+    return f === "buyer" ? "The BUYER pays 15% (" + fee + ") for transport. Refund will be " + nairaFull(r.amount * 0.85) + "."
+      : f === "seller" ? "The SELLER pays 15% (" + fee + ") for transport and logistics. The buyer is refunded in full (" + nairaFull(r.amount) + ")."
+      : "The DELIVERY COMPANY is at fault. The buyer is refunded in full (" + nairaFull(r.amount) + ") and BODEGS claims it back from the delivery company.";
+  }
   function reportCard(r) {
     const wrap = el("section", "app hubcard");
     const head = el("div", "app-head");
     head.appendChild(el("h2", "", r.product_name + (r.qty > 1 ? " × " + r.qty : "")));
     const labels = {
       open: ["Needs decision", ""], return_approved: ["Waiting for return", "wait"], return_sent: ["Buyer sent it back", ""],
-      refund_due: ["Refund due", "wait"], refunded: ["Refunded", "ok"], dismissed: ["Dismissed", "ok"], expired: ["Expired", "ok"]
+      refund_due: ["Refund due", "refund"], refunded: ["Refunded", "refund"], dismissed: ["Dismissed", "ok"], expired: ["Expired", "ok"]
     };
     const lb = labels[r.status] || [r.status, ""];
     head.appendChild(el("span", "stage " + lb[1], lb[0]));
@@ -637,11 +687,22 @@
     if (r.details) wrap.appendChild(el("p", "hubmeta", "“" + r.details + "”"));
     if (r.admin_note) wrap.appendChild(el("p", "hubmeta", "Your note: " + r.admin_note));
     const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-    if (r.fault && r.status !== "open" && r.status !== "dismissed") {
+    if (r.fault && (r.status === "refund_due" || r.status === "refunded")) {
       const who = r.fault === "buyer" ? "Buyer pays 15%. Refund " + nairaFull(r.refund_due_amount) + "."
         : r.fault === "seller" ? "Seller's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Seller owes " + nairaFull(r.seller_charge) + " (15%) for transport."
         : "Delivery company's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Claim it from the delivery company.";
       wrap.appendChild(el("p", "hubmeta", "Who pays: " + who));
+    }
+    if (["open", "return_approved", "return_sent"].includes(r.status)) {
+      const ev = el("div", "evid");
+      ev.appendChild(el("div", "", r.hub_checked_at
+        ? "Hub check before it was sent: passed on " + fmtDate(r.hub_checked_at) + (r.hub_note ? " (" + r.hub_note + ")" : "")
+        : "Hub check before it was sent: no record"));
+      ev.appendChild(el("div", "", r.courier_condition === "damaged"
+        ? "Courier: reported damage on " + fmtDate(r.courier_confirmed_at) + (r.courier_note ? " (" + r.courier_note + ")" : "")
+        : r.courier_condition === "ok" ? "Courier: delivered with no damage on " + fmtDate(r.courier_confirmed_at)
+        : "Courier: no confirmation on record"));
+      wrap.appendChild(ev);
     }
     const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300; input.placeholder = "Note (optional)";
     input.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box";
@@ -657,23 +718,10 @@
     const acts = el("div", "actions");
     if (r.status === "open") {
       wrap.appendChild(input);
-      const sel = el("select", "hubnote");
-      sel.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box;padding:11px 12px;font:inherit;font-size:14px";
-      [["buyer", "Buyer's reason (size, changed mind): buyer pays 15%"],
-       ["seller", "Seller's fault (wrong or bad item): buyer refunded in full, seller pays 15%"],
-       ["carrier", "Delivery company's fault (damaged on delivery): buyer refunded in full, delivery company pays"]]
-        .forEach((o) => { const op = el("option", "", o[1]); op.value = o[0]; sel.appendChild(op); });
-      wrap.appendChild(el("p", "hubmeta", "Who pays for this return?"));
-      wrap.appendChild(sel);
       const ok = el("button", "btn go", "Approve return"); ok.type = "button";
       const no = el("button", "btn reject", "Dismiss"); no.type = "button";
-      const WHO = {
-        buyer: "The BUYER pays 15% (" + nairaFull(r.amount * 0.15) + ") for transport. Refund will be " + nairaFull(r.amount * 0.85) + ".",
-        seller: "The SELLER pays 15% (" + nairaFull(r.amount * 0.15) + ") for transport and logistics. The buyer is refunded in full (" + nairaFull(r.amount) + ").",
-        carrier: "The DELIVERY COMPANY is at fault. The buyer is refunded in full (" + nairaFull(r.amount) + ") and BODEGS claims it back from the delivery company."
-      };
-      ok.addEventListener("click", () => run(ok, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "approve", p_note: input.value, p_fault: sel.value },
-        "Please confirm who pays.\n\n" + WHO[sel.value] + "\n\nThe buyer then has 7 days to send the item to the hub.", "Return approved."));
+      ok.addEventListener("click", () => run(ok, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "approve", p_note: input.value },
+        "Approve this return?\n\nThe buyer then has 7 days to send the item to the hub. You choose who pays after the item arrives and you have checked it.", "Return approved."));
       no.addEventListener("click", () => run(no, "admin_resolve_report", { p_report_id: r.report_id, p_decision: "dismiss", p_note: input.value, p_fault: null },
         "Dismiss this report? The buyer keeps the item and the seller will be paid.", "Dismissed."));
       acts.appendChild(ok); acts.appendChild(no);
@@ -681,13 +729,28 @@
       wrap.appendChild(el("p", "hubmeta", (r.status === "return_sent" ? "Buyer says it was sent back" + (r.return_sent_at ? " on " + fmtDate(r.return_sent_at) : "") + ". " : "Waiting for the buyer. ") +
         "The buyer must get it to the hub by " + (r.return_deadline ? fmtDate(r.return_deadline) : "the deadline") + "."));
       wrap.appendChild(input);
+      let sel = null;
       const got = el("button", "btn pass", "Return received at hub"); got.type = "button";
       if (r.status === "return_approved") {
         got.disabled = true; got.style.opacity = ".45";
-        wrap.appendChild(el("p", "hubmeta", "This unlocks when the buyer taps \"I have sent it back\"."));
+        wrap.appendChild(el("p", "hubmeta", "This unlocks when the buyer taps \"I have sent it back\". You choose who pays once the item has arrived and you have checked it."));
+      } else {
+        const sg = suggestFault(r);
+        wrap.appendChild(el("p", "hubmeta", "Inspect the returned item, then choose who pays. Suggested: " + FAULT_NAME[sg[0]] + ", because " + sg[1] + "."));
+        sel = el("select", "hubnote");
+        sel.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box;padding:11px 12px;font:inherit;font-size:14px";
+        [["buyer", "Buyer's reason · buyer pays 15%"],
+         ["seller", "Seller's fault · seller pays 15%"],
+         ["carrier", "Delivery company's fault · full refund"]]
+          .forEach((o) => { const op = el("option", "", o[1]); op.value = o[0]; sel.appendChild(op); });
+        sel.value = sg[0];
+        wrap.appendChild(sel);
       }
-      got.addEventListener("click", () => run(got, "admin_mark_return_received", { p_report_id: r.report_id, p_note: input.value },
-        "Mark the returned item as received at the hub? This unlocks the refund.", "Return received. You can now send the refund."));
+      got.addEventListener("click", () => {
+        if (!sel) return;
+        run(got, "admin_mark_return_received", { p_report_id: r.report_id, p_note: input.value, p_fault: sel.value },
+          "The returned item has arrived at the hub, and you checked it?\n\nWho pays: " + whoText(r, sel.value), "Return received. You can now send the refund.");
+      });
       acts.appendChild(got);
     } else if (r.status === "refund_due") {
       const locked = !!r.refund_started_at;
@@ -697,7 +760,7 @@
         ? "Paystack reference: " + r.payment_reference + (r.buyer_email ? " · Buyer email: " + r.buyer_email : "")
         : "No Paystack payment is on record for this order (it was placed before payments were connected), so there is nothing to send back through Paystack. Use \"I refunded it myself\" to close it."));
       if (!locked && r.payment_reference) {
-        const send = el("button", "btn pass", "Send refund " + nairaFull(r.refund_due_amount)); send.type = "button";
+        const send = el("button", "btn refund", "Send refund " + nairaFull(r.refund_due_amount)); send.type = "button";
         send.addEventListener("click", async () => {
           if (!confirm("Send " + nairaFull(r.refund_due_amount) + " back to the buyer through Paystack?")) return;
           send.disabled = true; send.textContent = "Sending...";
@@ -767,14 +830,14 @@
     bar.textContent = "";
     const add = (n, text, target, soft) => {
       if (!n) return;
-      const b = el("button", soft ? "soft" : "", n + " " + text);
+      const b = el("button", soft === "refund" ? "refundpill" : soft ? "soft" : "", n + " " + text);
       b.type = "button"; b.addEventListener("click", () => goTo(target));
       bar.appendChild(b);
     };
     let transit = 0;
     try {
       const q = await sb.rpc("admin_hub_queue");
-      if (!q.error && q.data) transit = q.data.filter((i) => i.dispatched_at && !i.delivered_at).length;
+      if (!q.error && q.data) transit = q.data.filter((i) => i.dispatched_at && !i.delivered_at && !i.courier_confirmed_at).length;
     } catch (e) {}
     data.in_transit = transit;
     add(Number(data.need_hub), "in the hub", "hub");
@@ -789,7 +852,7 @@
     }
     add(Number(data.need_apps), "to approve", "pending");
     add(Number(data.need_reports), "problem report(s)", "reports");
-    add(Number(data.need_refunds), "refund(s) to pay", "reports", true);
+    add(Number(data.need_refunds), "refund(s) to pay", "reports", "refund");
     bar.hidden = !bar.children.length;
     return data;
   }
