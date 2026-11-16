@@ -822,7 +822,7 @@
     }
     if (payFilter === "earnings") {
       const costRows = returnCosts.map((c) => txRow("Return cost: " + c.product_name,
-        shortDate(c.created_at) + " · " + ref(c) + " · " + (c.settled ? "Taken from a payout" : "Will be taken from your next payout"), "−" + naira(c.amount), "bad"));
+        shortDate(c.created_at) + " · " + ref(c) + (c.reason ? " · " + c.reason : "") + " · " + (c.settled ? "Taken from a payout" : "Will be taken from your next payout"), "−" + naira(c.amount), "bad"));
       rows = costRows.concat(rows);
     }
     if (rows.length) { rows.forEach((r) => list.appendChild(r)); return; }

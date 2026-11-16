@@ -448,6 +448,41 @@
   // ---------- Hub: one card per ORDER, listing every item from every seller ----------
   let hubData = [], hubFilter = "all";
 
+  function shrinkPhoto(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * scale)); c.height = Math.max(1, Math.round(img.height * scale));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob((blob) => blob ? resolve(blob) : reject(new Error("photo")), "image/jpeg", 0.8);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("photo")); };
+      img.src = url;
+    });
+  }
+  async function uploadCourierPhoto(file, itemId) {
+    const blob = await shrinkPhoto(file);
+    const path = "courier/" + String(itemId).replace(/[^a-zA-Z0-9-]/g, "") + "-" + Date.now() + ".jpg";
+    const up = await sb.storage.from("delivery-proof").upload(path, blob, { contentType: "image/jpeg", upsert: false });
+    if (up.error) throw up.error;
+    return path;
+  }
+  // A link that opens a private photo. The address is fetched first, so the link works as a normal tap.
+  function photoLink(bucket, path, label) {
+    const a = el("a", "", label);
+    a.target = "_blank"; a.rel = "noopener";
+    a.style.cssText = "display:inline-block;margin-right:14px;color:#3730a3;font-weight:600";
+    a.href = "#";
+    sb.storage.from(bucket).createSignedUrl(path, 3600).then((r) => {
+      if (r && r.data && r.data.signedUrl) a.href = r.data.signedUrl;
+      else { a.textContent = label + " (not available)"; a.style.color = "#6b7280"; }
+    }).catch(() => { a.textContent = label + " (not available)"; });
+    return a;
+  }
   function itemState(r) {
     if (r.delivered_at) return ["Delivered", "ok"];
     if (r.dispatched_at) {
@@ -456,6 +491,7 @@
       const days = Math.floor((Date.now() - new Date(r.dispatched_at).getTime()) / 86400000);
       return ["In transit · sent " + (days <= 0 ? "today" : days + " day" + (days === 1 ? "" : "s") + " ago"), days >= 3 ? "bad" : "wait"];
     }
+    if (r.hub_result === "rejected") return ["Damaged on arrival", "bad"];
     if (r.hub_result) return ["At hub, checked", "ok"];
     if (r.hub_received_at) return ["At hub", ""];
     if (r.shipped_at) return ["On its way to hub", "wait"];
@@ -471,7 +507,7 @@
     return Array.from(map.values()).map((o) => {
       const open = o.items.filter((i) => !i.delivered_at);
       o.total = o.items.length;
-      o.atHub = o.items.filter((i) => i.hub_result && !i.dispatched_at && !i.delivered_at).length;
+      o.atHub = o.items.filter((i) => i.hub_result === "passed" && !i.dispatched_at && !i.delivered_at).length;
       o.toReceive = o.items.filter((i) => i.shipped_at && !i.hub_received_at && !i.delivered_at).length;
       o.notSent = o.items.filter((i) => !i.shipped_at).length;
       o.sent = o.items.filter((i) => i.dispatched_at || i.delivered_at).length;
@@ -535,8 +571,14 @@
       if (r.courier_confirmed_at) {
         itemsBox.appendChild(el("p", "sub2 notel", "Courier " + (r.courier_condition === "damaged" ? "reported damage" : "confirmed delivery, no damage") +
           " · " + dShort(r.courier_confirmed_at) + (r.courier_note ? ": " + r.courier_note : "")));
+        if (r.courier_photo_path) { const pl = el("p", "sub2 notel"); pl.appendChild(photoLink("delivery-proof", r.courier_photo_path, "View courier photo")); itemsBox.appendChild(pl); }
       } else if (r.dispatched_at && !r.delivered_at) {
         const cb = el("div", "courierbtns");
+        let courierPhoto = null;
+        const photoBtn = el("button", "iconbtn", "📷"); photoBtn.type = "button"; photoBtn.title = "Add the courier's photo";
+        const photoIn = document.createElement("input"); photoIn.type = "file"; photoIn.accept = "image/*"; photoIn.hidden = true;
+        photoBtn.addEventListener("click", () => photoIn.click());
+        photoIn.addEventListener("change", () => { courierPhoto = photoIn.files[0] || null; photoBtn.textContent = courierPhoto ? "✓" : "📷"; });
         const okb = el("button", "btn go small", "Courier delivered, no damage"); okb.type = "button";
         const badb = el("button", "btn reject small", "Courier reports damage"); badb.type = "button";
         async function courierSet(cond, btn) {
@@ -547,14 +589,19 @@
             note = t.trim();
           } else if (!confirm("The courier confirmed this item was handed over with no damage?")) return;
           okb.disabled = badb.disabled = true;
-          const res = await call("admin_courier_confirm", { p_item_id: r.item_id, p_condition: cond, p_note: note }, null);
+          let photoPath = null;
+          if (courierPhoto) {
+            try { photoPath = await uploadCourierPhoto(courierPhoto, r.item_id); }
+            catch (e) { toast("Could not upload the photo. Try again.", true); okb.disabled = badb.disabled = false; return; }
+          }
+          const res = await call("admin_courier_confirm", { p_item_id: r.item_id, p_condition: cond, p_note: note, p_photo_path: photoPath }, null);
           if (res !== "ok" && res !== "already_done") { if (res !== false) toast("Could not update: " + res, true); okb.disabled = badb.disabled = false; return; }
           toast("Courier confirmation saved.");
           loadHub();
         }
         okb.addEventListener("click", () => courierSet("ok", okb));
         badb.addEventListener("click", () => courierSet("damaged", badb));
-        cb.appendChild(okb); cb.appendChild(badb);
+        cb.appendChild(photoBtn); cb.appendChild(photoIn); cb.appendChild(okb); cb.appendChild(badb);
         itemsBox.appendChild(cb);
       }
       if (canReceive) {
@@ -563,7 +610,18 @@
         noteInput = el("input", "hubnote"); noteInput.type = "text"; noteInput.maxLength = 300; noteInput.hidden = true;
         noteInput.placeholder = "e.g. box dented";
         nb.addEventListener("click", () => { noteInput.hidden = !noteInput.hidden; if (!noteInput.hidden) noteInput.focus(); });
-        itemsBox.appendChild(nb); itemsBox.appendChild(noteInput);
+        const db = el("button", "linkbtn", "Arrived damaged");
+        db.type = "button"; db.style.cssText = "color:#b91c1c;margin-left:14px";
+        db.addEventListener("click", async () => {
+          const t = prompt("What is damaged? (optional)", noteInput && noteInput.value ? noteInput.value : "");
+          if (t === null) return;
+          if (!confirm("Mark this item as damaged on arrival?\n\nThe buyer is refunded in full. The seller owes 15% for transport and delay, taken from their next payout. The item will not be sent to the buyer.")) return;
+          const res = await call("admin_hub_set", { p_item_id: r.item_id, p_stage: "damaged", p_note: t.trim() }, db);
+          if (res !== "ok") { if (res !== false) toast(res === "already_reported" ? "This item already has a report." : "Could not update: " + res, true); db.disabled = false; return; }
+          toast("Marked as damaged. The refund is waiting on the Reports page.");
+          loadHub();
+        });
+        itemsBox.appendChild(nb); itemsBox.appendChild(db); itemsBox.appendChild(noteInput);
       }
     });
 
@@ -645,6 +703,12 @@
   const FAULT_NAME = { buyer: "the buyer's reason (buyer pays 15%)", seller: "the seller's fault", carrier: "the delivery company's fault" };
   function suggestFault(r) {
     const reason = String(r.reason || "");
+    if (r.kind === "door_reject") {
+      return /wrong item/i.test(reason)
+        ? ["seller", "the buyer says it is not what was ordered"]
+        : ["carrier", "the hub cleared the item before it went out, so damage seen at the door is on the courier's side"];
+    }
+    if (/hidden defect/i.test(reason)) return ["seller", "a defect that was not visible at the door points to the item itself"];
     if (/damag/i.test(reason)) {
       if (r.courier_condition === "damaged") return ["carrier", "the courier itself reported damage"];
       if (!r.courier_condition) return ["carrier", "there is no courier confirmation, so the delivery company cannot show it handed over the item safely"];
@@ -667,7 +731,7 @@
       open: ["Needs decision", ""], return_approved: ["Waiting for return", "wait"], return_sent: ["Buyer sent it back", ""],
       refund_due: ["Refund due", "refund"], refunded: ["Refunded", "refund"], dismissed: ["Dismissed", "ok"], expired: ["Expired", "ok"]
     };
-    const lb = labels[r.status] || [r.status, ""];
+    const lb = (r.kind === "door_reject" && r.status === "return_sent") ? ["Coming back from the door", ""] : (labels[r.status] || [r.status, ""]);
     head.appendChild(el("span", "stage " + lb[1], lb[0]));
     wrap.appendChild(head);
     const row = el("div", "hubitem");
@@ -694,15 +758,25 @@
         : "Delivery company's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Claim it from the delivery company.";
       wrap.appendChild(el("p", "hubmeta", "Who pays: " + who));
     }
-    if (["open", "return_approved", "return_sent"].includes(r.status)) {
+    if (["open", "return_approved", "return_sent", "refund_due"].includes(r.status)) {
       const ev = el("div", "evid");
-      ev.appendChild(el("div", "", r.hub_checked_at
-        ? "Hub check before it was sent: passed on " + fmtDate(r.hub_checked_at) + (r.hub_note ? " (" + r.hub_note + ")" : "")
-        : "Hub check before it was sent: no record"));
-      ev.appendChild(el("div", "", r.courier_condition === "damaged"
-        ? "Courier: reported damage on " + fmtDate(r.courier_confirmed_at) + (r.courier_note ? " (" + r.courier_note + ")" : "")
-        : r.courier_condition === "ok" ? "Courier: delivered with no damage on " + fmtDate(r.courier_confirmed_at)
-        : "Courier: no confirmation on record"));
+      if (r.kind === "hub_damage") {
+        ev.appendChild(el("div", "", "Hub inspection: found damaged when it arrived at the hub" + (r.details ? " (" + r.details + ")" : "")));
+      } else {
+        ev.appendChild(el("div", "", r.hub_checked_at
+          ? "Hub check before it was sent: passed on " + fmtDate(r.hub_checked_at) + (r.hub_note ? " (" + r.hub_note + ")" : "")
+          : "Hub check before it was sent: no record"));
+        ev.appendChild(el("div", "", r.courier_condition === "damaged"
+          ? "Courier: reported damage on " + fmtDate(r.courier_confirmed_at) + (r.courier_note ? " (" + r.courier_note + ")" : "")
+          : r.courier_condition === "ok" ? "Courier: delivered with no damage on " + fmtDate(r.courier_confirmed_at)
+          : "Courier: no confirmation on record"));
+        if (r.photo_path || r.courier_photo_path) {
+          const pl = el("div"); pl.style.marginTop = "4px";
+          if (r.photo_path) pl.appendChild(photoLink("report-photos", r.photo_path, "Buyer's photo"));
+          if (r.courier_photo_path) pl.appendChild(photoLink("delivery-proof", r.courier_photo_path, "Courier's photo"));
+          ev.appendChild(pl);
+        }
+      }
       wrap.appendChild(ev);
     }
     const input = el("input", "hubnote"); input.type = "text"; input.maxLength = 300; input.placeholder = "Note (optional)";
@@ -727,8 +801,10 @@
         "Dismiss this report? The buyer keeps the item and the seller will be paid.", "Dismissed."));
       acts.appendChild(ok); acts.appendChild(no);
     } else if (r.status === "return_approved" || r.status === "return_sent") {
-      wrap.appendChild(el("p", "hubmeta", (r.status === "return_sent" ? "Buyer says it was sent back" + (r.return_sent_at ? " on " + fmtDate(r.return_sent_at) : "") + ". " : "Waiting for the buyer. ") +
-        "The buyer must get it to the hub by " + (r.return_deadline ? fmtDate(r.return_deadline) : "the deadline") + "."));
+      wrap.appendChild(el("p", "hubmeta", r.kind === "door_reject"
+        ? "The buyer rejected it at the door with the courier. Waiting for the courier to bring it back to the hub."
+        : (r.status === "return_sent" ? "Buyer says it was sent back" + (r.return_sent_at ? " on " + fmtDate(r.return_sent_at) : "") + ". " : "Waiting for the buyer. ") +
+          "The buyer must get it to the hub by " + (r.return_deadline ? fmtDate(r.return_deadline) : "the deadline") + "."));
       wrap.appendChild(input);
       let sel = null;
       const got = el("button", "btn pass", "Return received at hub"); got.type = "button";
@@ -756,7 +832,7 @@
     } else if (r.status === "refund_due") {
       const locked = !!r.refund_started_at;
       if (r.refund_error) wrap.appendChild(el("p", "hubmeta", (locked ? "Warning: " : "Paystack said: ") + r.refund_error));
-      else wrap.appendChild(el("p", "hubmeta", "The item is back at the hub. Send the refund through Paystack."));
+      else wrap.appendChild(el("p", "hubmeta", r.kind === "hub_damage" ? "The item arrived damaged at the hub. Send the full refund through Paystack." : "The item is back at the hub. Send the refund through Paystack."));
       wrap.appendChild(el("p", "hubmeta", r.payment_reference
         ? "Paystack reference: " + r.payment_reference + (r.buyer_email ? " · Buyer email: " + r.buyer_email : "")
         : "No Paystack payment is on record for this order (it was placed before payments were connected), so there is nothing to send back through Paystack. Use \"I refunded it myself\" to close it."));
