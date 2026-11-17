@@ -182,6 +182,7 @@
       <button type="button" class="chip" data-f="receive">Waiting for items</button>
       <button type="button" class="chip" data-f="send">Ready to send</button>
       <button type="button" class="chip" data-f="wait">In transit</button>
+      <button type="button" class="chip" data-f="rejected">Rejected</button>
     </div>
   </div>
 </header>
@@ -483,8 +484,11 @@
     }).catch(() => { a.textContent = label + " (not available)"; });
     return a;
   }
+  const ACTIVE_REPORT = ["open", "return_approved", "return_sent", "refund_due"];
+  function rejectedAtDoor(r) { return r.report_kind === "door_reject" && ACTIVE_REPORT.includes(r.report_status); }
   function itemState(r) {
     if (r.delivered_at) return ["Delivered", "ok"];
+    if (rejectedAtDoor(r)) return r.report_status === "refund_due" ? ["Back at hub · refund due", "refund"] : ["Rejected at the door · coming back", "refund"];
     if (r.dispatched_at) {
       if (r.courier_condition === "damaged") return ["Courier reports damage", "bad"];
       if (r.courier_condition === "ok") return ["Courier delivered, no damage", "ok"];
@@ -511,7 +515,8 @@
       o.toReceive = o.items.filter((i) => i.shipped_at && !i.hub_received_at && !i.delivered_at).length;
       o.notSent = o.items.filter((i) => !i.shipped_at).length;
       o.sent = o.items.filter((i) => i.dispatched_at || i.delivered_at).length;
-      o.inTransit = o.items.filter((i) => i.dispatched_at && !i.delivered_at && !i.courier_confirmed_at).length;
+      o.inTransit = o.items.filter((i) => i.dispatched_at && !i.delivered_at && !i.courier_confirmed_at && !i.report_status).length;
+      o.rejected = o.items.filter((i) => rejectedAtDoor(i)).length;
       o.group = o.atHub ? "send" : o.toReceive ? "receive" : open.length && open.every((i) => i.dispatched_at) ? "wait" : "receive";
       return o;
     });
@@ -572,7 +577,7 @@
         itemsBox.appendChild(el("p", "sub2 notel", "Courier " + (r.courier_condition === "damaged" ? "reported damage" : "confirmed delivery, no damage") +
           " · " + dShort(r.courier_confirmed_at) + (r.courier_note ? ": " + r.courier_note : "")));
         if (r.courier_photo_path) { const pl = el("p", "sub2 notel"); pl.appendChild(photoLink("delivery-proof", r.courier_photo_path, "View courier photo")); itemsBox.appendChild(pl); }
-      } else if (r.dispatched_at && !r.delivered_at) {
+      } else if (r.dispatched_at && !r.delivered_at && !r.report_status) {
         const cb = el("div", "courierbtns");
         let courierPhoto = null;
         const photoBtn = el("button", "iconbtn", "📷"); photoBtn.type = "button"; photoBtn.title = "Add the courier's photo";
@@ -645,6 +650,7 @@
     const q = $("hubSearch").value.trim().toLowerCase().replace(/^#/, "");
     const orders = groupOrders(hubData).filter((o) => {
       if (hubFilter === "wait") { if (!o.inTransit) return false; }
+      else if (hubFilter === "rejected") { if (!o.rejected) return false; }
       else if (hubFilter !== "all" && o.group !== hubFilter) return false;
       if (!q) return true;
       return o.items.some((r) => [r.order_id, r.item_id, r.product_name, r.store, r.buyer_name, r.buyer_phone, r.delivery_address]
@@ -700,7 +706,7 @@
   new MutationObserver(compactCards).observe($("list"), { childList: true });
 
   // ---------- Reports: buyer problem reports ----------
-  const FAULT_NAME = { buyer: "the buyer's reason (buyer pays 15%)", seller: "the seller's fault", carrier: "the delivery company's fault" };
+  const FAULT_NAME = { buyer: "the buyer's reason (buyer pays 15%)", seller: "the seller's fault", carrier: "the delivery company's fault", none: "no one (BODEGS covers it)" };
   function suggestFault(r) {
     const reason = String(r.reason || "");
     if (r.kind === "door_reject") {
@@ -721,6 +727,7 @@
     const fee = nairaFull(r.amount * 0.15);
     return f === "buyer" ? "The BUYER pays 15% (" + fee + ") for transport. Refund will be " + nairaFull(r.amount * 0.85) + "."
       : f === "seller" ? "The SELLER pays 15% (" + fee + ") for transport and logistics. The buyer is refunded in full (" + nairaFull(r.amount) + ")."
+      : f === "none" ? "NO ONE is charged. BODEGS covers the cost. The buyer is refunded in full (" + nairaFull(r.amount) + ")."
       : "The DELIVERY COMPANY is at fault. The buyer is refunded in full (" + nairaFull(r.amount) + ") and BODEGS claims it back from the delivery company.";
   }
   function reportCard(r) {
@@ -755,6 +762,7 @@
       const who = r.fault === "buyer" ? "Buyer pays 15%. Refund " + nairaFull(r.refund_due_amount) + "."
         : r.fault === "seller" ? "Seller's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Seller owes " + nairaFull(r.seller_charge) + " (15%) for transport. " +
           (r.seller_charge_settled_at ? "Taken from the seller's payout on " + fmtDate(r.seller_charge_settled_at) + "." : "It will be taken from the seller's next weekly payout.")
+        : r.fault === "none" ? "No one is charged. BODEGS covers the cost. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + ")."
         : "Delivery company's fault. Buyer refunded in full (" + nairaFull(r.refund_due_amount) + "). Claim it from the delivery company.";
       wrap.appendChild(el("p", "hubmeta", "Who pays: " + who));
     }
@@ -816,9 +824,14 @@
         wrap.appendChild(el("p", "hubmeta", "Inspect the returned item, then choose who pays. Suggested: " + FAULT_NAME[sg[0]] + ", because " + sg[1] + "."));
         sel = el("select", "hubnote");
         sel.style.cssText = "margin:8px 0 0;width:100%;box-sizing:border-box;padding:11px 12px;font:inherit;font-size:14px";
-        [["buyer", "Buyer's reason · buyer pays 15%"],
-         ["seller", "Seller's fault · seller pays 15%"],
-         ["carrier", "Delivery company's fault · full refund"]]
+        (r.kind === "door_reject"
+          ? [["carrier", "Delivery company's fault · full refund"],
+             ["seller", "Seller's fault · seller pays 15%"],
+             ["none", "No one · BODEGS covers it"]]
+          : [["buyer", "Buyer's reason · buyer pays 15%"],
+             ["seller", "Seller's fault · seller pays 15%"],
+             ["carrier", "Delivery company's fault · full refund"],
+             ["none", "No one · BODEGS covers it"]])
           .forEach((o) => { const op = el("option", "", o[1]); op.value = o[0]; sel.appendChild(op); });
         sel.value = sg[0];
         wrap.appendChild(sel);
@@ -911,10 +924,13 @@
       b.type = "button"; b.addEventListener("click", () => goTo(target));
       bar.appendChild(b);
     };
-    let transit = 0;
+    let transit = 0, rejectedCount = 0;
     try {
       const q = await sb.rpc("admin_hub_queue");
-      if (!q.error && q.data) transit = q.data.filter((i) => i.dispatched_at && !i.delivered_at && !i.courier_confirmed_at).length;
+      if (!q.error && q.data) {
+        transit = q.data.filter((i) => i.dispatched_at && !i.delivered_at && !i.courier_confirmed_at && !i.report_status).length;
+        rejectedCount = q.data.filter((i) => rejectedAtDoor(i)).length;
+      }
     } catch (e) {}
     data.in_transit = transit;
     add(Number(data.need_hub), "in the hub", "hub");
@@ -926,6 +942,15 @@
         goTo("hub");
       });
       bar.appendChild(t);
+    }
+    if (rejectedCount) {
+      const rj = el("button", "refundpill", rejectedCount + " rejected at the door"); rj.type = "button";
+      rj.addEventListener("click", () => {
+        hubFilter = "rejected";
+        document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.f === "rejected"));
+        goTo("hub");
+      });
+      bar.appendChild(rj);
     }
     add(Number(data.need_apps), "to approve", "pending");
     add(Number(data.need_reports), "problem report(s)", "reports");

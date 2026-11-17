@@ -1271,7 +1271,7 @@
         return "Your item was damaged before it reached us, so we are refunding you in full (" + money(refund) + "). We are sorry for the inconvenience.";
       }
       if (r.kind === "door_reject" && r.status === "return_sent") {
-        return "You rejected this item at the door. We are waiting for the courier to bring it back to our hub. Once we have checked it, we confirm your refund.";
+        return "You rejected this item at the door. We are waiting for the courier to bring it back to our hub. Once it is back, you are refunded in full with no return fee.";
       }
       if (r.status === "open") return "Problem reported. We are reviewing it.";
       if (r.status === "return_approved") {
@@ -1554,7 +1554,7 @@
         problemDialog({
           itemId: rejectBtn.getAttribute("data-reject"), pname: rejectBtn.getAttribute("data-pname") || "this item",
           title: "Reject this item", send: "Reject item", rpc: "buyer_reject_at_door", reasons: ["Damaged", "Wrong item"],
-          intro: "Use this only while the courier is with you. The courier takes the item back and we check it at our hub. If it was damaged or wrong, you are refunded in full.",
+          intro: "Use this only while the courier is with you. The courier takes the item back and we check it at our hub. You are refunded in full, with no return fee.",
           done: "We recorded that you rejected this item. Give it back to the courier. We will update the item here once it is back at our hub."
         });
         return;
