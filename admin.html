@@ -170,6 +170,12 @@
     <a href="profile.html">Profile</a>
   </div>
   <div id="attn" hidden></div>
+  <div class="seg" id="prodSeg" hidden style="margin:10px 0 0">
+    <button type="button" class="on" data-p="pending">Waiting</button>
+    <button type="button" data-p="approved">Approved</button>
+    <button type="button" data-p="changes_requested">Changes</button>
+    <button type="button" data-p="rejected">Rejected</button>
+  </div>
   <div class="seg" id="appSeg" hidden style="margin:10px 0 0">
     <button type="button" class="on" data-s="pending">Pending</button>
     <button type="button" data-s="approved">Approved</button>
@@ -192,6 +198,7 @@
   <button type="button" class="tab on" data-status="home">Home</button>
   <button type="button" class="tab" data-status="hub">Hub <span class="cnt" id="cHub"></span></button>
   <button type="button" class="tab" data-status="pending">Approve sellers <span class="cnt" id="cPending"></span></button>
+  <button type="button" class="tab" data-status="products">Product approval <span class="cnt" id="cProd"></span></button>
   <button type="button" class="tab" data-status="reports">Reports <span class="cnt" id="cRep"></span></button>
   <div class="sep"></div>
   <button type="button" class="tab" data-status="sellers">Sellers</button>
@@ -207,7 +214,7 @@
 <script>
   const $ = (id) => document.getElementById(id);
   let status = "home";
-  const TITLES = { home: "Home", hub: "Hub", pending: "Approve sellers", reports: "Reports", sellers: "Sellers", approved: "Approve sellers", rejected: "Approve sellers", costs: "Costs" };
+  const TITLES = { home: "Home", hub: "Hub", pending: "Approve sellers", reports: "Reports", products: "Product approval", sellers: "Sellers", approved: "Approve sellers", rejected: "Approve sellers", costs: "Costs" };
   let ownerBoutiques = {};
 
   function toast(text, isError) {
@@ -952,6 +959,12 @@
       });
       bar.appendChild(rj);
     }
+    try {
+      const pc = await sb.rpc("admin_product_counts");
+      const waiting = pc && !pc.error && pc.data ? Number(pc.data.pending) : 0;
+      $("cProd").textContent = waiting ? String(waiting) : "";
+      add(waiting, "product(s) to review", "products");
+    } catch (e) {}
     add(Number(data.need_apps), "to approve", "pending");
     add(Number(data.need_reports), "problem report(s)", "reports");
     add(Number(data.need_refunds), "refund(s) to pay", "reports", "refund");
@@ -1108,6 +1121,100 @@
     });
   }
 
+  // ---------- Product approval: new products stay hidden until you approve them ----------
+  let prodStatus = "pending";
+  document.querySelectorAll("#prodSeg button").forEach((b) => b.addEventListener("click", () => { prodStatus = b.dataset.p; load(); }));
+
+  function productMissing(p) {
+    const miss = [];
+    const photos = Array.isArray(p.images) && p.images.length ? p.images : (p.image_url ? [p.image_url] : []);
+    if (!photos.length) miss.push("no photo");
+    else if (photos.length < 2) miss.push("only one photo");
+    if (!p.description || String(p.description).trim().length < 20) miss.push("description is missing or very short");
+    if (!p.category) miss.push("no category");
+    if (!(Number(p.price_ngn) > 0)) miss.push("price is zero");
+    if (!Array.isArray(p.sizes) || !p.sizes.length) miss.push("no sizes");
+    if (!p.material) miss.push("no material");
+    return miss;
+  }
+
+  function productCard(p) {
+    const wrap = el("section", "app hubcard");
+    const photos = Array.isArray(p.images) && p.images.length ? p.images : (p.image_url ? [p.image_url] : []);
+    const head = el("div", "app-head hubhead");
+    const row = el("div", "hubitem"); row.style.borderTop = "0"; row.style.padding = "0"; row.style.flex = "1"; row.style.minWidth = "0";
+    const img = el("img", "hubimg"); img.alt = ""; img.loading = "lazy"; if (photos[0]) img.src = photos[0];
+    row.appendChild(img);
+    const body = el("div", "hubbody");
+    body.appendChild(el("b", "", p.name || "Untitled product"));
+    body.appendChild(el("span", "sub2", (p.store || "Seller") + (p.store_city ? " · " + p.store_city : "")));
+    body.appendChild(el("span", "sub2", nairaFull(p.price_ngn) + " (seller's price) · " + new Date(p.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })));
+    row.appendChild(body);
+    head.appendChild(row);
+    wrap.appendChild(head);
+
+    const miss = productMissing(p);
+    const flag = el("div", "evid");
+    flag.style.color = miss.length ? "#991b1b" : "#166534";
+    flag.textContent = miss.length ? "Check: " + miss.join(", ") + "." : "Information looks complete.";
+    wrap.appendChild(flag);
+
+    const box = el("div"); box.hidden = true;
+    head.style.cursor = "pointer";
+    head.addEventListener("click", () => { box.hidden = !box.hidden; });
+    wrap.appendChild(box);
+
+    if (p.description) { const d = el("p", "hubmeta", p.description); d.style.whiteSpace = "pre-wrap"; box.appendChild(d); }
+    const colors = Array.isArray(p.colors) ? p.colors.map((c) => typeof c === "string" ? c : (c && (c.name || c.label || c.hex)) || "").filter(Boolean) : [];
+    const specs = [["Category", p.category], ["Condition", p.condition], ["In stock", p.inventory], ["Sizes", Array.isArray(p.sizes) ? p.sizes.join(", ") : ""],
+      ["Colours", colors.join(", ")], ["Material", p.material], ["Composition", p.composition], ["Fit", p.fit], ["Care", p.care]]
+      .filter((x) => x[1] !== null && x[1] !== undefined && String(x[1]) !== "");
+    specs.forEach((x) => box.appendChild(el("p", "hubmeta", x[0] + ": " + x[1])));
+    if (photos.length) {
+      const g = el("div"); g.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin:8px 0";
+      photos.forEach((u) => {
+        const a = el("a"); a.href = u; a.target = "_blank"; a.rel = "noopener";
+        const t = el("img"); t.src = u; t.alt = ""; t.loading = "lazy";
+        t.style.cssText = "width:72px;height:72px;object-fit:cover;border-radius:10px;background:#eee";
+        a.appendChild(t); g.appendChild(a);
+      });
+      box.appendChild(g);
+    }
+    if (p.approval_note) wrap.appendChild(el("p", "hubmeta", "Your note to the seller: " + p.approval_note));
+
+    async function decide(decision, btn) {
+      let noteText = "";
+      if (decision === "changes" || decision === "reject") {
+        const t = prompt(decision === "changes" ? "What should the seller change? The seller will see this." : "Why is this product rejected? The seller will see this.", "");
+        if (t === null) return;
+        noteText = t.trim();
+        if (!noteText) { toast("Please write a short note for the seller.", true); return; }
+      } else if (!confirm("Approve this product? It goes live for buyers straight away.")) return;
+      btn.disabled = true;
+      const { data, error } = await sb.rpc("admin_review_product", { p_product_id: String(p.id), p_decision: decision, p_note: noteText });
+      if (error || data !== "ok") { toast("Could not update: " + (error ? error.message : data), true); btn.disabled = false; return; }
+      toast(decision === "approve" ? "Approved. The product is live." : decision === "changes" ? "Sent back to the seller." : "Rejected.");
+      load();
+    }
+    const acts = el("div", "actions");
+    if (p.approval_status !== "approved") { const ok = el("button", "btn pass", "Approve"); ok.type = "button"; ok.addEventListener("click", () => decide("approve", ok)); acts.appendChild(ok); }
+    if (p.approval_status !== "changes_requested") { const ch = el("button", "btn go", "Ask for changes"); ch.type = "button"; ch.addEventListener("click", () => decide("changes", ch)); acts.appendChild(ch); }
+    if (p.approval_status !== "rejected") { const no = el("button", "btn reject", "Reject"); no.type = "button"; no.addEventListener("click", () => decide("reject", no)); acts.appendChild(no); }
+    wrap.appendChild(acts);
+    return wrap;
+  }
+
+  async function loadProducts() {
+    const { data, error } = await sb.rpc("admin_products_queue", { p_status: prodStatus });
+    if (error) { note("Could not load products: " + error.message, true); return; }
+    const list = $("list");
+    list.textContent = "";
+    const rows = Array.isArray(data) ? data : [];
+    if (!rows.length) { note(prodStatus === "pending" ? "No products are waiting for approval." : "Nothing here."); return; }
+    list.appendChild(el("p", "sub", rows.length + " product(s) · tap one to see all the details"));
+    rows.forEach((p) => list.appendChild(productCard(p)));
+  }
+
   async function load() {
     note("Loading...");
     $("title").textContent = TITLES[status] || "Admin";
@@ -1116,11 +1223,14 @@
     document.querySelectorAll("#appSeg button").forEach((b) => b.classList.toggle("on", b.dataset.s === status));
     document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.status === status || (inApps && t.dataset.status === "pending")));
     $("hubbar").hidden = status !== "hub";
+    $("prodSeg").hidden = status !== "products";
+    document.querySelectorAll("#prodSeg button").forEach((b) => b.classList.toggle("on", b.dataset.p === prodStatus));
     if (status !== "home") refreshAttn();
     if (status === "home") { return loadHome(); }
     if (status === "costs") { return loadCosts(); }
     if (status === "hub") { return loadHub(); }
     if (status === "reports") { return loadReports(); }
+    if (status === "products") { return loadProducts(); }
     if (status === "sellers") { return loadSellers(); }
     const { data, error } = await sb
       .from("seller_applications")

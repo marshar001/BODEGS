@@ -610,8 +610,10 @@
     catch (e) { return ""; }
   }
 
+  const isLive = (p) => p.active && (!p.approval_status || p.approval_status === "approved");
+
   function renderStats() {
-    const live = products.filter((p) => p.active).length;
+    const live = products.filter(isLive).length;
     const soldOut = products.filter((p) => p.inventory <= 0).length;
     const box = $("stats");
     box.textContent = "";
@@ -978,7 +980,7 @@
     id.appendChild(gear);
     panel.appendChild(id);
     [["City", seller.city], ["Address", seller.address], ["Main category", seller.category],
-     ["Live products", String(products.filter((p) => p.active).length)],
+     ["Live products", String(products.filter(isLive).length)],
      ["Total orders", ok() ? String(orders.length) : "–"]].forEach((x) => {
       if (!x[1]) return;
       const r = el("div", "row2x");
@@ -1166,7 +1168,7 @@
     $("listView").hidden = false;
     window.scrollTo(0, 0);
 
-    const live = products.filter((p) => p.active).length;
+    const live = products.filter(isLive).length;
     const hidden = products.length - live;
     renderAll();
     showView(currentView);
@@ -1202,9 +1204,14 @@
       info.appendChild(el("p", "price", naira(p.price_ngn)));
       info.appendChild(el("p", "meta", p.category + " · Qty " + p.inventory));
       const badges = el("div");
-      badges.appendChild(el("span", "badge" + (p.active ? "" : " off"), p.active ? "Live" : "Hidden"));
+      const ap = p.approval_status || "approved";
+      if (ap === "approved") badges.appendChild(el("span", "badge" + (p.active ? "" : " off"), p.active ? "Live" : "Hidden"));
+      else if (ap === "pending") badges.appendChild(el("span", "badge off", "Waiting for approval"));
+      else if (ap === "changes_requested") badges.appendChild(el("span", "badge off", "Changes requested"));
+      else badges.appendChild(el("span", "badge out", "Rejected"));
       if (p.inventory <= 0) badges.appendChild(el("span", "badge out", "Sold out"));
       info.appendChild(badges);
+      if (ap !== "approved" && p.approval_note) info.appendChild(el("p", "meta", "BODEGS: " + p.approval_note));
       main.appendChild(info);
       card.appendChild(main);
 
@@ -1228,7 +1235,8 @@
   async function loadProducts() {
     const BASE = "id, name, description, price_ngn, category, condition, inventory, images, colors, image_url, active, created_at";
     const ask = (cols) => sb.from("products").select(cols).eq("seller_id", seller.id).order("created_at", { ascending: false });
-    let { data, error } = await ask(BASE + ", sizes, material, composition, fit, care");
+    let { data, error } = await ask(BASE + ", approval_status, approval_note, sizes, material, composition, fit, care");
+    if (error) ({ data, error } = await ask(BASE + ", sizes, material, composition, fit, care"));   // approval columns not added to the database yet
     if (error) ({ data, error } = await ask(BASE));   // detail columns not added to the database yet
     if (error) { setNotice("Could not load your products. Please check your connection and refresh."); return false; }
     products = data;
@@ -1490,8 +1498,12 @@
       }
       if (result.error) throw result.error;
 
+      const savedId = editingId;
       await loadProducts();
-      toast(editingId ? "Changes saved." : "Product published. Buyers can see it now.");
+      const savedNow = savedId ? products.find((x) => String(x.id) === String(savedId)) : null;
+      toast(!savedId ? "Product submitted. It goes live after BODEGS approves it."
+        : (savedNow && savedNow.approval_status === "pending") ? "Changes saved. The product is back in review and hidden from buyers until it is approved."
+        : "Changes saved.");
       renderList();
     } catch (err) {
       formMessage("Could not save your product. Please check your connection and try again.", "err");
