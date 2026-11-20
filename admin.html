@@ -1123,6 +1123,96 @@
 
   // ---------- Product approval: new products stay hidden until you approve them ----------
   let prodStatus = "pending";
+  let pricing = { markup_percent: 45, buyer_fee_percent: 15, seller_commission_percent: 15, promo_history_days: 14 };
+  let pricingReady = false;
+  const money2 = (n) => { const v = Number(n || 0); return "₦" + v.toLocaleString("en-NG", { minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 }); };
+  const lagosDay = (d) => new Date(d).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  const shortDay = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" });
+
+  // What the buyer pays and what everyone keeps, for a given discount (0 = normal price).
+  function priceBreakdown(p, discount) {
+    const seller = Number(p.price_ngn) || 0;
+    const ref = Number(p.reference_price) || Math.round(seller * (100 + pricing.markup_percent)) / 100;
+    const selling = discount ? Math.round(ref * (100 - discount)) / 100 : ref;
+    const fee = Math.round(selling * pricing.buyer_fee_percent) / 100;
+    const total = Math.round((selling + fee) * 100) / 100;
+    const commission = Math.round(seller * pricing.seller_commission_percent) / 100;
+    const payout = Math.round((seller - commission) * 100) / 100;
+    return { seller, ref, selling, fee, total, commission, payout, keeps: Math.round((total - payout) * 100) / 100 };
+  }
+  const PROMO_ERRORS = {
+    not_approved: "Approve the product first.", bad_percent: "Choose one of the listed discounts.", dates_needed: "Choose a start date and an end date.",
+    bad_dates: "The end date must be after the start date.", below_floor: "That discount would sell the product for less than the seller is paid."
+  };
+
+  function pricingBlock(p, box) {
+    const wrap = el("div", "evid"); wrap.style.marginTop = "8px";
+    const line = (t) => { const d = el("div"); d.textContent = t; wrap.appendChild(d); };
+    const promoOn = Number(p.discount_percent) > 0 && p.promo_start && p.promo_end;
+    const b0 = priceBreakdown(p, 0);
+    line("Seller's price " + money2(b0.seller) + " → normal price " + money2(b0.ref) + " (+" + pricing.markup_percent + "%)");
+    if (promoOn) line("Promotion: " + p.discount_percent + "% off from " + shortDay(p.promo_start) + " to " + shortDay(p.promo_end) + " → " + money2(priceBreakdown(p, Number(p.discount_percent)).selling));
+    const sh = priceBreakdown(p, promoOn ? Number(p.discount_percent) : 0);
+    line("Buyer pays " + money2(sh.selling) + " + " + pricing.buyer_fee_percent + "% service fee " + money2(sh.fee) + " = " + money2(sh.total) +
+      ". Seller gets " + money2(sh.payout) + " (after " + pricing.seller_commission_percent + "% commission). BODEGS keeps " + money2(sh.keeps) + ".");
+    box.appendChild(wrap);
+    if (!pricingReady) { line("Run pricing_1.sql in Supabase to switch promotions on."); return; }
+    if (p.approval_status !== "approved") return;
+
+    // ---- promotion controls ----
+    const days = Number(pricing.promo_history_days) || 14;
+    const earliest = new Date(new Date(p.price_live_since || p.created_at).getTime() + days * 86400000);
+    const floor = Math.round(b0.seller * (100 - pricing.seller_commission_percent)) / 100;
+    const ctl = el("div"); ctl.style.cssText = "margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px";
+    const sel = el("select"); sel.style.cssText = "grid-column:1/-1;padding:10px;font:inherit;font-size:14px;border:1.5px solid var(--line);border-radius:10px";
+    const none = el("option", "", "No promotion"); none.value = ""; sel.appendChild(none);
+    [15, 20, 25, 30, 40].forEach((d) => {
+      const o = el("option", "", d + "% off → " + money2(priceBreakdown(p, d).selling)); o.value = String(d);
+      if (Math.round(b0.ref * (100 - d)) / 100 < floor) { o.disabled = true; o.textContent = d + "% off (below the seller's payout)"; }
+      sel.appendChild(o);
+    });
+    sel.value = promoOn ? String(Number(p.discount_percent)) : "";
+    const startIn = el("input"); startIn.type = "date"; startIn.min = lagosDay(earliest);
+    const endIn = el("input"); endIn.type = "date";
+    [startIn, endIn].forEach((x) => { x.style.cssText = "padding:10px;font:inherit;font-size:14px;border:1.5px solid var(--line);border-radius:10px;min-width:0"; });
+    if (promoOn) { startIn.value = lagosDay(p.promo_start); endIn.value = lagosDay(p.promo_end); }
+    ctl.appendChild(sel); ctl.appendChild(startIn); ctl.appendChild(endIn);
+    box.appendChild(ctl);
+    box.appendChild(el("p", "hubmeta", "Earliest start: " + shortDay(earliest) + ". The normal price must have been live for " + days + " days first, so the 'was' price is real."));
+    sel.addEventListener("change", () => {
+      const d = Number(sel.value) || 0; const b = priceBreakdown(p, d);
+      prev.textContent = d ? "With " + d + "% off: buyer pays " + money2(b.selling) + " + fee " + money2(b.fee) + " = " + money2(b.total) + ". BODEGS keeps " + money2(b.keeps) + "." : "";
+    });
+    const prev = el("p", "hubmeta"); box.appendChild(prev);
+    const acts = el("div", "actions");
+    const save = el("button", "btn go", "Save promotion"); save.type = "button";
+    save.addEventListener("click", async () => {
+      const d = Number(sel.value) || null;
+      if (!d) { toast("Choose a discount, or press End promotion.", true); return; }
+      if (!startIn.value || !endIn.value) { toast("Choose a start date and an end date.", true); return; }
+      save.disabled = true;
+      const { data, error } = await sb.rpc("admin_set_promo", { p_product_id: String(p.id), p_percent: d,
+        p_start: new Date(startIn.value + "T00:00:00+01:00").toISOString(), p_end: new Date(endIn.value + "T23:59:59+01:00").toISOString() });
+      if (error || data !== "ok") {
+        let m = error ? error.message : (PROMO_ERRORS[data] || String(data));
+        if (!error && String(data).indexOf("too_early:") === 0) m = "Too early. The earliest start is " + shortDay(String(data).split(":")[1]) + ".";
+        toast(m, true); save.disabled = false; return;
+      }
+      toast("Promotion saved."); load();
+    });
+    acts.appendChild(save);
+    if (promoOn) {
+      const end = el("button", "btn reject", "End promotion"); end.type = "button";
+      end.addEventListener("click", async () => {
+        if (!confirm("End this promotion now? The product goes back to its normal price.")) return;
+        const { data, error } = await sb.rpc("admin_set_promo", { p_product_id: String(p.id), p_percent: null, p_start: null, p_end: null });
+        if (error || data !== "ok") { toast("Could not end the promotion.", true); return; }
+        toast("Promotion ended."); load();
+      });
+      acts.appendChild(end);
+    }
+    box.appendChild(acts);
+  }
   document.querySelectorAll("#prodSeg button").forEach((b) => b.addEventListener("click", () => { prodStatus = b.dataset.p; load(); }));
 
   function productMissing(p) {
@@ -1148,7 +1238,8 @@
     const body = el("div", "hubbody");
     body.appendChild(el("b", "", p.name || "Untitled product"));
     body.appendChild(el("span", "sub2", (p.store || "Seller") + (p.store_city ? " · " + p.store_city : "")));
-    body.appendChild(el("span", "sub2", nairaFull(p.price_ngn) + " (seller's price) · " + new Date(p.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })));
+    body.appendChild(el("span", "sub2", nairaFull(p.price_ngn) + " seller price → " + nairaFull(priceBreakdown(p, 0).ref) + " normal price"));
+    body.appendChild(el("span", "sub2", "Added " + new Date(p.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + (Number(p.discount_percent) > 0 && p.promo_end && new Date(p.promo_end) > new Date() ? " · " + p.discount_percent + "% promotion" : "")));
     row.appendChild(body);
     head.appendChild(row);
     wrap.appendChild(head);
@@ -1182,6 +1273,8 @@
     }
     if (p.approval_note) wrap.appendChild(el("p", "hubmeta", "Your note to the seller: " + p.approval_note));
 
+    pricingBlock(p, box);
+
     async function decide(decision, btn) {
       let noteText = "";
       if (decision === "changes" || decision === "reject") {
@@ -1210,7 +1303,28 @@
     const list = $("list");
     list.textContent = "";
     const rows = Array.isArray(data) ? data : [];
-    if (!rows.length) { note(prodStatus === "pending" ? "No products are waiting for approval." : "Nothing here."); return; }
+    try {
+      const ps = await sb.rpc("pricing_settings");
+      if (!ps.error && ps.data) { pricing = ps.data; pricingReady = true; }
+    } catch (e) {}
+    const top = el("div", "evid"); top.style.margin = "0 0 8px";
+    top.appendChild(el("div", "", "Markup " + pricing.markup_percent + "% · buyer service fee " + pricing.buyer_fee_percent + "% · seller commission " + pricing.seller_commission_percent + "%"));
+    if (pricingReady) {
+      const mb = el("button", "linkbtn", "Change markup"); mb.type = "button";
+      mb.addEventListener("click", async () => {
+        const t = prompt("New markup % (now " + pricing.markup_percent + "). This changes every normal price and ends all promotions.", String(pricing.markup_percent));
+        if (t === null) return;
+        const v = Number(t);
+        if (!(v >= 0 && v <= 200)) { toast("Enter a number from 0 to 200.", true); return; }
+        if (!confirm("Change the markup to " + v + "%? Every normal price changes and all promotions end.")) return;
+        const r = await sb.rpc("admin_set_markup", { p_percent: v });
+        if (r.error || r.data !== "ok") { toast("Could not change the markup.", true); return; }
+        toast("Markup changed."); load();
+      });
+      top.appendChild(mb);
+    }
+    list.appendChild(top);
+    if (!rows.length) { list.appendChild(el("p", "sub", prodStatus === "pending" ? "No products are waiting for approval." : "Nothing here.")); return; }
     list.appendChild(el("p", "sub", rows.length + " product(s) · tap one to see all the details"));
     rows.forEach((p) => list.appendChild(productCard(p)));
   }
