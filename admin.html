@@ -200,6 +200,7 @@
   <button type="button" class="tab" data-status="pending">Approve sellers <span class="cnt" id="cPending"></span></button>
   <button type="button" class="tab" data-status="products">Product approval <span class="cnt" id="cProd"></span></button>
   <button type="button" class="tab" data-status="reports">Reports <span class="cnt" id="cRep"></span></button>
+  <button type="button" class="tab" data-status="payments">Payment issues <span class="cnt" id="cPay"></span></button>
   <div class="sep"></div>
   <button type="button" class="tab" data-status="sellers">Sellers</button>
   <div class="sep"></div>
@@ -214,7 +215,7 @@
 <script>
   const $ = (id) => document.getElementById(id);
   let status = "home";
-  const TITLES = { home: "Home", hub: "Hub", pending: "Approve sellers", reports: "Reports", products: "Product approval", sellers: "Sellers", approved: "Approve sellers", rejected: "Approve sellers", costs: "Costs" };
+  const TITLES = { home: "Home", hub: "Hub", pending: "Approve sellers", reports: "Reports", products: "Product approval", payments: "Payment issues", sellers: "Sellers", approved: "Approve sellers", rejected: "Approve sellers", costs: "Costs" };
   let ownerBoutiques = {};
 
   function toast(text, isError) {
@@ -965,6 +966,12 @@
       $("cProd").textContent = waiting ? String(waiting) : "";
       add(waiting, "product(s) to review", "products");
     } catch (e) {}
+    try {
+      const pi = await sb.rpc("admin_payment_issue_count");
+      const open = pi && !pi.error && pi.data != null ? Number(pi.data) : 0;
+      $("cPay").textContent = open ? String(open) : "";
+      add(open, "payment issue(s)", "payments", "refund");
+    } catch (e) {}
     add(Number(data.need_apps), "to approve", "pending");
     add(Number(data.need_reports), "problem report(s)", "reports");
     add(Number(data.need_refunds), "refund(s) to pay", "reports", "refund");
@@ -1316,6 +1323,67 @@
     return wrap;
   }
 
+  /* ---------- payment issues ---------- */
+  let payShowResolved = false;
+  const PAY_KINDS = {
+    paid_but_cancelled: ["Paid, but the order was cancelled", "The buyer's money was taken but the order was cancelled. Refund the buyer in Paystack, then mark this as handled."],
+    amount_mismatch: ["Amount did not match", "Paystack received a different amount from the order total. Check the payment in Paystack before the order ships."],
+    refund_failed: ["Refund failed", "A refund did not go through. Send it by hand in Paystack, then mark this as handled."],
+    cancel_limbo: ["Cancellation stuck", "A cancellation started but did not finish. Check the order and Paystack, then fix by hand."],
+    oversold: ["Sold more than in stock", "Two buyers paid for the last item. Cancel and refund one of them."]
+  };
+  const payKind = (k) => PAY_KINDS[k] || [String(k || "Payment issue").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()), "Check this payment in Paystack, then mark it as handled."];
+  const payMoney = (n) => { n = Number(n) || 0; const w = Math.abs(n - Math.round(n)) < 0.005; return "\u20A6" + n.toLocaleString("en-NG", { minimumFractionDigits: w ? 0 : 2, maximumFractionDigits: 2 }); };
+
+  async function loadPayments() {
+    const { data, error } = await sb.rpc("admin_payment_issues", { p_resolved: payShowResolved });
+    if (error) { note("Could not load payment issues: " + (/function|schema cache|does not exist/i.test(error.message) ? "run payments_1.sql in Supabase first." : error.message), true); return; }
+    const list = $("list"); list.textContent = "";
+    const seg = el("div", "seg");
+    [["Open", false], ["Handled", true]].forEach(([t, v]) => {
+      const b = el("button", payShowResolved === v ? "on" : "", t); b.type = "button";
+      b.addEventListener("click", () => { payShowResolved = v; loadPayments(); });
+      seg.appendChild(b);
+    });
+    list.appendChild(seg);
+    const rows = Array.isArray(data) ? data : [];
+    if (!rows.length) { list.appendChild(el("p", "sub", payShowResolved ? "Nothing handled yet." : "No payment problems. All good.")); return; }
+    list.appendChild(el("p", "sub", rows.length + (payShowResolved ? " handled" : " open") + " · newest first"));
+    rows.forEach((r) => {
+      const [label, hint] = payKind(r.kind);
+      const c = el("div", "app");
+      c.appendChild(el("h3", "", label));
+      const meta = [];
+      if (r.order_id) meta.push("Order BOD-" + String(r.order_id).slice(0, 8).toUpperCase());
+      if (r.amount_kobo != null) meta.push(payMoney(Number(r.amount_kobo) / 100));
+      meta.push(new Date(r.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }));
+      c.appendChild(el("p", "sub", meta.join(" · ")));
+      const dl = el("dl");
+      row(dl, "Paystack reference", r.reference);
+      row(dl, "Buyer", [r.customer_name, r.phone].filter(Boolean).join(" · "));
+      row(dl, "Order total", r.order_total != null ? payMoney(r.order_total) : "");
+      row(dl, "Order", r.order_id ? [r.payment_status ? "payment " + r.payment_status : "", r.order_status ? "status " + r.order_status : ""].filter(Boolean).join(" · ") : "");
+      row(dl, "Note", r.note);
+      if (r.resolved_at) row(dl, "Handled", new Date(r.resolved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }));
+      c.appendChild(dl);
+      if (!r.resolved_at) {
+        const h = el("div", "evid", hint); c.appendChild(h);
+        const act = el("div", "actions");
+        const b = el("button", "btn approve", "Mark as handled"); b.type = "button";
+        b.addEventListener("click", async () => {
+          const n = prompt("What did you do? (optional, e.g. refunded in Paystack)");
+          if (n === null) return;
+          b.disabled = true;
+          const res = await sb.rpc("admin_resolve_payment_issue", { p_id: r.id, p_note: n });
+          if (res.error || res.data !== "ok") { b.disabled = false; toast("Could not save. Try again.", true); return; }
+          toast("Marked as handled."); loadPayments(); refreshAttn();
+        });
+        act.appendChild(b); c.appendChild(act);
+      }
+      list.appendChild(c);
+    });
+  }
+
   async function loadProducts() {
     const { data, error } = await sb.rpc("admin_products_queue", { p_status: prodStatus });
     if (error) { note("Could not load products: " + error.message, true); return; }
@@ -1364,6 +1432,7 @@
     if (status === "hub") { return loadHub(); }
     if (status === "reports") { return loadReports(); }
     if (status === "products") { return loadProducts(); }
+    if (status === "payments") { return loadPayments(); }
     if (status === "sellers") { return loadSellers(); }
     const { data, error } = await sb
       .from("seller_applications")
