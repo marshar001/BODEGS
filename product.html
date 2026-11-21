@@ -327,7 +327,7 @@ function bodegsShowPrice(el, amount, cur) {
         bodegsShowPrice($("productPrice"), product.price, product.currency);
         (function () {
           var tag = window.BODEGS && window.BODEGS.saleLine ? window.BODEGS.saleLine(product) : null;
-          if (tag) { tag.style.fontSize = "14px"; $("productPrice").parentNode.appendChild(tag); }
+          if (tag) { tag.style.fontSize = "15px"; $("productPrice").style.setProperty("color", "#d9480f", "important"); $("productPrice").parentNode.appendChild(tag); }
         })();
         $("sellerName").textContent = product.sellerName || "BODEGS Seller";
         $("storeLogo").textContent = (product.sellerName || "B").trim().charAt(0).toUpperCase() || "B";

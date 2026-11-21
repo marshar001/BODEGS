@@ -42,14 +42,14 @@ function saleLine(product) {
   if (!product || !product.onSale || !product.wasPrice) { return null; }
   const el = document.createElement("span");
   el.className = "sale-line";
-  el.style.cssText = "display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;";
+  el.style.cssText = "display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:500;";
+  const off = document.createElement("b");
+  off.textContent = "-" + product.discountPercent + "%";
+  off.style.cssText = "border:1px solid #d9480f;color:#d9480f;border-radius:4px;padding:1px 6px;font-weight:700;line-height:1.3;";
   const was = document.createElement("s");
   was.textContent = formatCurrency(product.wasPrice, product.currency || "NGN");
   was.style.cssText = "color:#8a8a8a;";
-  const off = document.createElement("b");
-  off.textContent = "-" + product.discountPercent + "%";
-  off.style.cssText = "background:#fde7e4;color:#b3261e;border-radius:4px;padding:1px 5px;font-weight:600;";
-  el.appendChild(was); el.appendChild(off);
+  el.appendChild(off); el.appendChild(was);
   return el;
 }
 

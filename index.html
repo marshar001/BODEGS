@@ -691,7 +691,7 @@ function bodegsShowPrice(el, amount, cur) {
           bodegsShowPrice(price, product.price, product.currency || "NGN");
           card.appendChild(price);
           const saleTag = window.BODEGS && window.BODEGS.saleLine ? window.BODEGS.saleLine(product) : null;
-          if (saleTag) { const saleWrap = document.createElement("div"); saleWrap.style.margin = "-2px 0 4px"; saleWrap.appendChild(saleTag); card.appendChild(saleWrap); }
+          if (saleTag) { price.style.setProperty("color", "#d9480f", "important"); const saleWrap = document.createElement("div"); saleWrap.style.margin = "-2px 0 4px"; saleWrap.appendChild(saleTag); card.appendChild(saleWrap); }
 
           if (product.description) {
             const description = document.createElement("small");
