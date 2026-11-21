@@ -1079,6 +1079,25 @@
     const tot = el("p", "cap"); tot.textContent = "Last 12 months: revenue " + nairaFull(sum("revenue")) + " · expenses " + nairaFull(sum("payouts") + sum("refunds") + sum("costs")) + ". Add your own costs under Costs.";
     card.appendChild(tot);
 
+    // What BODEGS earns: the buyer's 15% service fee plus the 15% commission, on delivered orders.
+    const earn = el("div", "card"); home.appendChild(earn);
+    earn.appendChild(el("h2", "", "What BODEGS earns"));
+    const earnBody = el("p", "cap", "Loading..."); earn.appendChild(earnBody);
+    sb.rpc("admin_earnings").then(({ data: e, error: ee }) => {
+      if (ee || !e) { earnBody.textContent = "Run pricing_3.sql in Supabase to see this."; return; }
+      earnBody.remove();
+      const m2 = (n) => { n = Number(n) || 0; const w = Math.abs(n - Math.round(n)) < 0.005; return "\u20A6" + n.toLocaleString("en-NG", { minimumFractionDigits: w ? 0 : 2, maximumFractionDigits: 2 }); };
+      const row = (a, b, bold) => { const r = el("div", "costrow"); r.style.cssText = "display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(128,128,128,.18);"; const x = el("span", "", a), y = el(bold ? "b" : "span", "", b); r.appendChild(x); r.appendChild(y); earn.appendChild(r); };
+      earn.appendChild(el("p", "cap", "Delivered orders only, not counting refunds. " + (e.items || 0) + " items."));
+      row("Buyers paid", m2(e.buyers_paid));
+      row("Sellers' own prices", m2(e.seller_prices));
+      row("Buyer service fees (15%)", m2(e.service_fees));
+      row("Seller commissions (15%)", m2(e.commissions));
+      row("Sellers receive", m2(e.seller_payouts));
+      row("Discounts given", m2(e.discounts_given));
+      row("BODEGS earns", m2(e.bodegs_earns), true);
+    });
+
     // Capacity
     const cap = el("div", "card"); home.appendChild(cap);
     cap.appendChild(el("h2", "", "Is it time to upgrade?"));

@@ -971,9 +971,9 @@
         String(value ?? 0).replace(/[^\d.-]/g, "")
       );
 
-      return "₦" + (
-        Number.isFinite(amount) ? amount : 0
-      ).toLocaleString("en-NG");
+      const n = Number.isFinite(amount) ? amount : 0;
+      const whole = Math.abs(n - Math.round(n)) < 0.005;
+      return "₦" + n.toLocaleString("en-NG", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
     }
 
     function escapeHTML(value) {
@@ -1415,6 +1415,9 @@
         <div class="od-section">
           <h3>PAYMENT</h3>
           <div class="od-row"><span>Status</span><span>${order.paid ? "Paid" : (cancelled && order.refundAmount) ? "Paid, then refunded" : cancelled ? "Not paid" : "Awaiting payment"}</span></div>
+          ${Number(order.serviceFee) > 0 ? `
+            <div class="od-row"><span>Items</span><span>${formatMoney(order.itemsTotal)}</span></div>
+            <div class="od-row"><span>Service fee (15%)</span><span>${formatMoney(order.serviceFee)}</span></div>` : ""}
           <div class="od-row"><span>Total</span><strong>${formatMoney(order.total)}</strong></div>
         </div>
         ${cancelled && order.refundAmount ? `
@@ -1732,14 +1735,13 @@
       const user = await requireLogin();
       if (!user) return;
 
-      const { data, error } = await sb
-        .from("orders")
-        .select(
-          "id, status, payment_status, total, created_at, customer_name, phone, delivery_address, city, cancel_fee, refund_amount, " +
-          "order_items(id, qty, price_at_purchase, product_name, product_image, size, color, shipped_at, delivered_at, hub_received_at, dispatched_at)"
-        )
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      const orderCols =
+        "id, status, payment_status, total, created_at, customer_name, phone, delivery_address, city, cancel_fee, refund_amount, " +
+        "order_items(id, qty, price_at_purchase, product_name, product_image, size, color, shipped_at, delivered_at, hub_received_at, dispatched_at)";
+      const loadOrders = cols => sb.from("orders").select(cols).eq("user_id", user.id).order("created_at", { ascending: false });
+      // Ask for the service fee too; if the database does not have it yet, quietly use the older columns.
+      let { data, error } = await loadOrders(orderCols.replace("refund_amount, ", "refund_amount, items_total, service_fee, "));
+      if (error) { ({ data, error } = await loadOrders(orderCols)); }
 
       if (error) {
         ordersList.innerHTML =
@@ -1766,6 +1768,8 @@
         createdAt: order.created_at,
         status: order.status,
         total: order.total,
+        itemsTotal: order.items_total,
+        serviceFee: order.service_fee,
         customer: order.customer_name,
         phone: order.phone,
         address: order.delivery_address,
