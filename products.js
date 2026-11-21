@@ -32,8 +32,25 @@ function formatCurrency(amount, currency = "NGN") {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
   }).format(amount);
+}
+
+/* A small "was price + percent off" line for a product on promotion (null when there is none). */
+function saleLine(product) {
+  if (!product || !product.onSale || !product.wasPrice) { return null; }
+  const el = document.createElement("span");
+  el.className = "sale-line";
+  el.style.cssText = "display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;";
+  const was = document.createElement("s");
+  was.textContent = formatCurrency(product.wasPrice, product.currency || "NGN");
+  was.style.cssText = "color:#8a8a8a;";
+  const off = document.createElement("b");
+  off.textContent = "-" + product.discountPercent + "%";
+  off.style.cssText = "background:#fde7e4;color:#b3261e;border-radius:4px;padding:1px 5px;font-weight:600;";
+  el.appendChild(was); el.appendChild(off);
+  return el;
 }
 
 /* Writes a price into an element with a smaller currency sign (the naira sign looks too big at full size). */
@@ -68,11 +85,23 @@ function fromDatabaseRow(row) {
       ? row.images
       : (row.image_url ? [row.image_url] : []);
 
+  // What the buyer pays: the promotion price while a promotion is running, otherwise the normal price.
+  const base = Number(row.price_ngn);
+  const ref = row.reference_price != null ? Number(row.reference_price) : base;
+  const pct = Number(row.discount_percent) || 0;
+  const nowMs = Date.now();
+  const onSale = pct > 0 && !!row.promo_start && !!row.promo_end &&
+    nowMs >= new Date(row.promo_start).getTime() && nowMs <= new Date(row.promo_end).getTime();
+  const sellPrice = onSale ? Math.round(ref * (1 - pct / 100) * 100) / 100 : ref;
+
   return {
     id: row.id,
     name: row.name,
     slug: row.id,
-    price: Number(row.price_ngn),
+    price: sellPrice,
+    wasPrice: onSale ? ref : null,
+    discountPercent: onSale ? pct : 0,
+    onSale: onSale,
     currency: "NGN",
     description: row.description || "",
     category: row.category,
@@ -115,7 +144,10 @@ function loadProductsFromDatabase() {
 
   // Ask for the newer detail columns (sizes, material...). If the database
   // does not have them yet, quietly fall back to the basic columns.
-  const request = query(BASE_COLUMNS + ", sizes, material, composition, fit, care")
+  const PRICE_COLUMNS = ", reference_price, discount_percent, promo_start, promo_end";
+  const DETAIL_COLUMNS = ", sizes, material, composition, fit, care";
+  const request = query(BASE_COLUMNS + DETAIL_COLUMNS + PRICE_COLUMNS)
+    .then(result => result.error ? query(BASE_COLUMNS + DETAIL_COLUMNS) : result)
     .then(result => result.error ? query(BASE_COLUMNS) : result)
     .then(result => {
       if (result.error) { throw result.error; }
@@ -145,5 +177,6 @@ window.BODEGS = {
   getProductBySlug,
   formatCurrency,
   setPrice,
+  saleLine,
   getProductLegacyUrl
 };

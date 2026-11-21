@@ -105,7 +105,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="products.js?v=20261031"></script>
+  <script src="products.js?v=20261032"></script>
+  <script src="pricing.js?v=1"></script>
   <script>
 // Product names, images and links come from sellers, so they are always
 // escaped before being placed into the page.
@@ -188,7 +189,7 @@ if (lastProductPage) {
   String(product.price ?? 0).replace(/[^\d.]/g, "")
 ) || 0;
     const quantity = product.quantity || 1;
-    const totalPrice = "₦" + (numericPrice * quantity).toLocaleString("en-NG");
+    const totalPrice = window.BODEGSPrice.money(numericPrice * quantity);
 
     const item = document.createElement("article");
 
@@ -296,8 +297,12 @@ if (lastProductPage) {
   return total + numericPrice * (product.quantity || 1);
 }, 0);
 
-    const formattedSubtotal =
-      "₦" + cartSubtotal.toLocaleString("en-NG");
+    const lineList = cartProducts.map(product => ({
+      price: Number(product.numericPrice ?? String(product.price ?? 0).replace(/[^\d.]/g, "")) || 0,
+      quantity: product.quantity || 1
+    }));
+    const sums = window.BODEGSPrice.totals(lineList);
+    const formattedSubtotal = window.BODEGSPrice.money(sums.items);
 
     orderSummary.innerHTML = `
       <h2>Order Summary</h2>
@@ -308,13 +313,18 @@ if (lastProductPage) {
       </div>
 
       <div class="cart-summary-row">
+        <span>Service fee (${window.BODEGSPrice.feePercent}%)</span>
+        <strong>${window.BODEGSPrice.money(sums.fee)}</strong>
+      </div>
+
+      <div class="cart-summary-row">
         <span>Delivery</span>
         <strong>Calculated at checkout</strong>
       </div>
 
       <div class="cart-summary-total">
         <span>Total</span>
-        <strong>${formattedSubtotal}</strong>
+        <strong>${window.BODEGSPrice.money(sums.total)}</strong>
       </div>
 
       <button type="button" class="cart-checkout-button" id="cartCheckoutButton">
@@ -523,6 +533,8 @@ if (cartCheckoutButton) {
     window.location.href = "checkout.html";
   });
 }
+  // Prices may have changed since the item was added: refresh once, then show the new totals.
+  if (window.BODEGSPrice) { window.BODEGSPrice.syncCart().then(function (changed) { if (changed) { location.reload(); } }); }
 </script>
 
 <script src="nav.js?v=6"></script>

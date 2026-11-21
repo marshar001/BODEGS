@@ -135,6 +135,8 @@
       a.appendChild(wrap);
       var h = document.createElement("h3"); h.textContent = p.name || ""; a.appendChild(h);
       var pr = document.createElement("p"); showPrice(pr, p); a.appendChild(pr);
+      var sale = window.BODEGS && window.BODEGS.saleLine ? window.BODEGS.saleLine(p) : null;
+      if (sale) { var sw = document.createElement("div"); sw.style.margin = "-2px 0 4px"; sw.appendChild(sale); a.appendChild(sw); }
       if (p.description) { var d = document.createElement("small"); d.textContent = p.description; a.appendChild(d); }
       if (p.productVerified) { var v = document.createElement("small"); v.textContent = "\u2713 BODEGS verified"; a.appendChild(v); }
       return a;

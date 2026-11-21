@@ -262,7 +262,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="products.js?v=20261031"></script>
+  <script src="products.js?v=20261032"></script>
   <script>
 function bodegsShowPrice(el, amount, cur) {
   var B = window.BODEGS;
@@ -325,6 +325,10 @@ function bodegsShowPrice(el, amount, cur) {
         /* ----- basics ----- */
         $("productName").textContent = product.name;
         bodegsShowPrice($("productPrice"), product.price, product.currency);
+        (function () {
+          var tag = window.BODEGS && window.BODEGS.saleLine ? window.BODEGS.saleLine(product) : null;
+          if (tag) { tag.style.fontSize = "14px"; $("productPrice").parentNode.appendChild(tag); }
+        })();
         $("sellerName").textContent = product.sellerName || "BODEGS Seller";
         $("storeLogo").textContent = (product.sellerName || "B").trim().charAt(0).toUpperCase() || "B";
 

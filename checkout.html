@@ -111,6 +111,11 @@
         </div>
 
         <div class="checkout-summary-row">
+          <span id="checkoutFeeLabel">Service fee (15%)</span>
+          <strong id="checkoutFee">₦0</strong>
+        </div>
+
+        <div class="checkout-summary-row">
           <span>Delivery</span>
           <strong>Calculated at payment</strong>
         </div>
@@ -157,6 +162,7 @@
 <script src="https://js.paystack.co/v2/inline.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
+<script src="pricing.js?v=1"></script>
 <script>
 
     function escapeHTML(value) {
@@ -350,6 +356,7 @@
       `;
 
       checkoutSubtotal.textContent = "₦0";
+      document.getElementById("checkoutFee").textContent = "₦0";
       checkoutTotal.textContent = "₦0";
 
     } else {
@@ -410,7 +417,7 @@
 
           <div class="checkout-item-price">
             <strong>
-              ₦${itemTotal.toLocaleString("en-NG")}
+              ${window.BODEGSPrice.money(itemTotal)}
             </strong>
           </div>
         `;
@@ -419,14 +426,14 @@
 
       });
 
-      const formattedTotal =
-        "₦" + cartTotal.toLocaleString("en-NG");
-
-      checkoutSubtotal.textContent =
-        formattedTotal;
-
-      checkoutTotal.textContent =
-        formattedTotal;
+      const sums = window.BODEGSPrice.totals(cartProducts.map(product => ({
+        price: Number(product.numericPrice ?? String(product.price ?? 0).replace(/[^\d.]/g, "")) || 0,
+        quantity: product.quantity || 1
+      })));
+      checkoutSubtotal.textContent = window.BODEGSPrice.money(sums.items);
+      document.getElementById("checkoutFeeLabel").textContent = "Service fee (" + window.BODEGSPrice.feePercent + "%)";
+      document.getElementById("checkoutFee").textContent = window.BODEGSPrice.money(sums.fee);
+      checkoutTotal.textContent = window.BODEGSPrice.money(sums.total);
     }
   // BODEGS DEMO ORDER FLOW
     const placeDemoOrderButton =
@@ -605,6 +612,8 @@
       }
     });
   
+  // Prices may have changed since the item was added: refresh once, then show the new totals.
+  if (window.BODEGSPrice) { window.BODEGSPrice.syncCart().then(function (changed) { if (changed) { location.reload(); } }); }
   </script>
 
 </body>
